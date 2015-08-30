@@ -1,0 +1,31 @@
+{
+    "name": "jasny/typecast",
+    "type": "library",
+    "description": "Type casting with basic logic",
+    "keywords": ["type casting"],
+    "license": "MIT",
+    "homepage": "http://jasny.github.com/typecast",
+    "authors": [
+        {
+            "name": "Arnold Daniels",
+            "email": "arnold@jasny.net",
+            "homepage": "http://www.jasny.net"
+        }
+    ],
+    "support": {
+        "issues": "https://github.com/jasny/typecast/issues",
+        "source": "https://github.com/jasny/typecast"
+    },
+    "require": {
+        "php": ">=5.4.0"
+    },
+    "require-dev": {
+        "phpunit/phpunit": "^4.2.0"
+    },
+    "autoload": {
+        "psr-4": {
+            "Jasny\\": "src/"
+        }
+    }
+}
+
