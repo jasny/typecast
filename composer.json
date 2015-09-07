@@ -20,7 +20,7 @@
         "php": ">=5.4.0"
     },
     "require-dev": {
-        "phpunit/phpunit": "^4.2.0"
+        "jasny/php-code-quality": "^1.1"
     },
     "autoload": {
         "psr-4": {
@@ -28,4 +28,3 @@
         }
     }
 }
-
