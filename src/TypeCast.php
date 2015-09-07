@@ -4,10 +4,10 @@ namespace Jasny;
 
 /**
  * Class for type casting
- * 
+ *
  * ```
  * $string = TypeCast::cast($myValue, 'string');
- * 
+ *
  * $string = TypeCast::value($myValue)->to('string');
  * $foo = TypeCast::value($data)->to('Foo');
  * ```
@@ -21,7 +21,7 @@ class TypeCast
     
     /**
      * Class constructor
-     * 
+     *
      * @param mixed $value
      */
     protected function __construct($value)
@@ -31,7 +31,7 @@ class TypeCast
     
     /**
      * Factory method
-     * 
+     *
      * @param mixed $value
      */
     public static function value($value)
@@ -41,7 +41,7 @@ class TypeCast
     
     /**
      * Cast value
-     * 
+     *
      * @param string $type
      * @return mixed
      */
@@ -53,7 +53,7 @@ class TypeCast
     
     /**
      * Cast the value to a type.
-     * 
+     *
      * @param mixed  $value
      * @param string $type
      * @return mixed
@@ -76,7 +76,7 @@ class TypeCast
     
     /**
      * Cast value to a string
-     * 
+     *
      * @param mixed $value
      * @return string
      */
@@ -106,7 +106,7 @@ class TypeCast
     
     /**
      * Cast value to a boolean
-     * 
+     *
      * @param mixed $value
      * @return boolean
      */
@@ -142,7 +142,7 @@ class TypeCast
     
     /**
      * Cast value to an integer
-     * 
+     *
      * @param mixed $value
      * @return int
      */
@@ -153,7 +153,7 @@ class TypeCast
     
     /**
      * Cast value to an integer
-     * 
+     *
      * @param mixed $value
      * @return int
      */
@@ -164,7 +164,7 @@ class TypeCast
     
     /**
      * Cast value to an integer
-     * 
+     *
      * @param string $type   'integer' or 'float'
      * @param mixed  $value
      * @return int|float
@@ -202,7 +202,7 @@ class TypeCast
 
     /**
      * Cast value to a typed array
-     * 
+     *
      * @param mixed  $value
      * @param string $subtype  Type of the array items
      * @return mixed
@@ -229,7 +229,7 @@ class TypeCast
     
     /**
      * Cast value to an object
-     * 
+     *
      * @param mixed $value
      * @return object
      */
@@ -252,7 +252,7 @@ class TypeCast
     
     /**
      * Cast value to a resource
-     * 
+     *
      * @param mixed $value
      * @return object
      */
@@ -268,7 +268,7 @@ class TypeCast
     
     /**
      * Cast value to a non-internal type
-     * 
+     *
      * @param mixed  $value
      * @param string $class
      * @return object
