@@ -477,16 +477,27 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
+     * Test type casting to an array using a callback for subtype
+     */
+    public function testToTypedArray_Callback()
+    {
+        $result = TypeCast::toArray([1, 4, 5], function($val) { return $val + 1; });
+        $this->assertSame([2, 5, 6], $result);
+        
+        $result = TypeCast::toArray(9, function($val) { return $val + 1; });
+        $this->assertSame([10], $result);
+    }
+    
+    /**
      * Test type casting a string to an array of integers
      *
      * @expectedException         PHPUnit_Framework_Error_Warning
      * @expectedExceptionMessage  Unable to cast string "foo" to a integer
      */
-    public function testToTypedArray_String()
+    public function testToTypedArray_StringInt()
     {
         TypeCast::toArray('foo', 'int');
     }
-    
     
     /**
      * Test `cast` method

@@ -203,8 +203,8 @@ class TypeCast
     /**
      * Cast value to a typed array
      *
-     * @param mixed  $value
-     * @param string $subtype  Type of the array items
+     * @param mixed           $value
+     * @param string|\Closure $subtype  Type of the array items
      * @return mixed
      */
     public static function toArray($value, $subtype = null)
@@ -219,8 +219,10 @@ class TypeCast
         $array = $value === '' ? [] : (array)$value;
 
         if (isset($subtype)) {
-            foreach ($array as &$v) {
-                $v = static::cast($v, $subtype);
+            foreach ($array as &$item) {
+                $item = $subtype instanceof \Closure
+                    ? $subtype($item)
+                    : static::cast($item, $subtype);
             }
         }
         
@@ -243,7 +245,7 @@ class TypeCast
         }
         
         if (is_scalar($value)) {
-            trigger_error("Unable to cast a ". gettype($value) . " to an object.", E_USER_WARNING);
+            trigger_error("Unable to cast a " . gettype($value) . " to an object.", E_USER_WARNING);
             return $value;
         }
         
