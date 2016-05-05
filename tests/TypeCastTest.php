@@ -645,7 +645,7 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
         
         $typecast->expects($this->once())->id('toInteger')->method('toInteger');
         $typecast->expects($this->exactly(2))->id('toArray')->method('toArray')->after('toInteger')
-            ->withConsecutive([], ['integer']);
+            ->withConsecutive([null], ['integer']);
         $typecast->expects($this->once())->id('toClass')->method('toClass')->after('toArray')->with(FooBar::class);
         $typecast->expects($this->once())->id('toMultiType')->method('toMultiType')->after('toClass')
             ->with(['string', 'integer[]']);

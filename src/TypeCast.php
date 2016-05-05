@@ -131,7 +131,7 @@ class TypeCast
         
         // Cast internal types
         if (in_array($type, ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'])) {
-            return call_user_func([$this, 'to' . ucfirst($type)], $this->value);
+            return call_user_func([$this, 'to' . ucfirst($type)]);
         }
 
         // Cast to class
