@@ -191,6 +191,11 @@ class TypeCast
      */
     public function toMultiType($types)
     {
+        $types = array_diff($types, ['null']);
+        if (count($types) === 1) {
+            return $this->to(reset($types));
+        }
+        
         $valueType = gettype($this->value);
         
         $found = false;

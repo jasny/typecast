@@ -590,6 +590,14 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
+     * Test type casting presenting multiple types
+     */
+    public function testToMultiTypeNull()
+    {
+        $this->assertSame(10, TypeCast::value('10')->toMultiType(['int', 'null']));
+    }
+    
+    /**
      * Test type casting presenting multiple types with no matching type
      * 
      * @expectedException         PHPUnit_Framework_Error_Warning
