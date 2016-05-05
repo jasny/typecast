@@ -352,7 +352,7 @@ class TypeCast
         }
         
         if (is_object($this->value)) {
-            $array = $this->value instanceof \StdClass
+            $array = $this->value instanceof \stdClass
                 ? call_user_func('get_object_vars', $this->value)
                 : [$this->value];
         } else {

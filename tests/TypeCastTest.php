@@ -449,18 +449,18 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
     }
     
     /**
-     * Test type casting to StdClass
+     * Test type casting to stdClass
      */
     public function testToStdClass()
     {
         $object = (object)['foo' => 'bar'];
-        $this->assertSame($object, TypeCast::value($object)->toClass('StdClass'));
+        $this->assertSame($object, TypeCast::value($object)->toClass('stdClass'));
         
-        $this->assertEquals($object, TypeCast::value(['foo' => 'bar'])->toClass('StdClass'));
+        $this->assertEquals($object, TypeCast::value(['foo' => 'bar'])->toClass('stdClass'));
     }
     
     /**
-     * Test type casting to StdClass
+     * Test type casting to stdClass
      */
     public function testToStdClassWithObject()
     {
@@ -469,7 +469,7 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
         $foobar->y = 123;
         
         $expected = (object)['x' => 'abc123', 'y' => 123, 'ball' => null, 'bike' => null];
-        $this->assertEquals($expected, TypeCast::value($foobar)->toClass('StdClass'));
+        $this->assertEquals($expected, TypeCast::value($foobar)->toClass('stdClass'));
     }
     
     /**
