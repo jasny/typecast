@@ -67,4 +67,20 @@ class FooBar
     {
         return 'foo';
     }
+    
+    /**
+     * Create object from data
+     * 
+     * @param array $data
+     * @return object
+     */
+    public static function __set_state($data)
+    {
+        $foobar = new self();
+        
+        if (isset($data['x'])) $foobar->x = $data['x'];
+        if (isset($data['y'])) $foobar->y = $data['y'];
+        
+        return $foobar;
+    }
 }

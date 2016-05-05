@@ -5,12 +5,11 @@ namespace Jasny;
 /**
  * Class for type casting
  *
- * ```
- * $string = TypeCast::cast($myValue, 'string');
- *
- * $string = TypeCast::value($myValue)->to('string');
- * $foo = TypeCast::value($data)->to('Foo');
- * ```
+ *     $string = TypeCast::value($myValue)->to('string');
+ *     $foo = TypeCast::value($data)->to('Foo');
+ * 
+ * When casting to an object of a class, the `__set_state()` method is used if available and the value is an array or a
+ * stdClass object.
  */
 class TypeCast
 {
@@ -20,11 +19,21 @@ class TypeCast
     protected $value;
     
     /**
+     * Type aliases
+     * @var string[]
+     */
+    protected $aliases = [
+        'bool' => 'boolean',
+        'int' => 'integer'
+    ];
+    
+    
+    /**
      * Class constructor
      *
      * @param mixed $value
      */
-    protected function __construct($value)
+    public function __construct($value)
     {
         $this->value = $value;
     }
@@ -36,8 +45,75 @@ class TypeCast
      */
     public static function value($value)
     {
-        return new self($value);
+        return new static($value);
     }
+    
+    /**
+     * Create a clone of this typecast object for a different value
+     * 
+     * @param mixed $value
+     * @return static
+     */
+    protected function forValue($value)
+    {
+        $cast = clone $this;
+        $cast->value = $value;
+        
+        return $cast;
+    }
+    
+    
+    /**
+     * Add a custom alias
+     * 
+     * @param string $alias
+     * @param string $type
+     */
+    public function alias($alias, $type)
+    {
+        $this->aliases[$alias] = $type;
+    }
+
+    /**
+     * Replace alias type with full type
+     * 
+     * @param string $type
+     */
+    public function normalizeType(&$type)
+    {
+        if (substr($type, -2) === '[]') {
+            $subtype = substr($type, 0, -2);
+            $this->normalizeType($subtype);
+            
+            $type = $subtype . '[]';
+            return;
+        }
+        
+        if (isset($this->aliases[$type])) {
+            $type = $this->aliases[$type];
+        }
+    }
+    
+    /**
+     * Check that all items of value are of a specific type
+     * 
+     * @param array $types
+     */
+    protected function allSubValuesAre($types)
+    {
+        foreach ($this->value as $item) {
+            $compare = function ($type) use ($item) {
+                return gettype($item) === $type || is_a($item, $type);
+            };
+                
+            if (max(array_map($compare, $types)) !== true) {
+                return false;
+            }
+        }
+        
+        return true;
+    }
+    
     
     /**
      * Cast value
@@ -47,153 +123,207 @@ class TypeCast
      */
     public function to($type)
     {
-        return static::cast($this->value, $type);
+        if (strstr($type, '|')) {
+            return $this->toMultiType(explode('|', $type));
+        }
+        
+        $this->normalizeType($type);
+        
+        // Cast internal types
+        if (in_array($type, ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'])) {
+            return call_user_func([$this, 'to' . ucfirst($type)], $this->value);
+        }
+
+        // Cast to class
+        return substr($type, -2) === '[]'
+            ? $this->toArray(substr($type, 0, -2))
+            : $this->toClass($type);
     }
     
     
     /**
-     * Cast the value to a type.
-     *
-     * @param mixed  $value
+     * Trigger a warning that the value can't be casted and return $value
+     * 
      * @param string $type
+     * @param string $explain  Additional message
      * @return mixed
      */
-    public static function cast($value, $type)
+    public function dontCastTo($type, $explain = null)
     {
-        if ($type === 'bool') $type = 'boolean';
-        if ($type === 'int') $type = 'integer';
-        
-        // Cast internal types
-        if (in_array($type, ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource'])) {
-            return call_user_func([get_called_class(), 'to' . ucfirst($type)], $value);
+        if (is_resource($this->value)) {
+            $valueType = "a " . get_resource_type($this->value) . " resource";
+        } elseif (is_array($this->value)) {
+            $valueType = "an array";
+        } elseif (is_object($this->value)) {
+            $valueType = "a " . get_class($this->value) . " object";
+        } elseif (is_string($this->value)) {
+            $valueType = "string \"{$this->value}\"";
+        } else {
+            $valueType = "a " . gettype($this->value);
         }
+        
+        if (!strstr($type, '|')) {
+            $type = (in_array($type, ['array', 'object']) ? 'an ' : 'a ') . $type;
+        }
+        
+        $message = "Unable to cast $valueType to $type" . (isset($explain) ? ": $explain" : '');
+        trigger_error($message, E_USER_WARNING);
+        
+        return $this->value;
+    }
+    
+    
+    /**
+     * Leave value as is
+     * 
+     * @return mixed
+     */
+    public function toMixed()
+    {
+        return $this->value;
+    }
+    
+    /**
+     * Check if value is one of the types, otherwise trigger a warning
+     * 
+     * @param array $types
+     * @return mixed
+     */
+    public function toMultiType($types)
+    {
+        $valueType = gettype($this->value);
+        
+        $found = false;
+        $subtypes = [];
+        
+        foreach ($types as &$type) {
+            $this->normalizeType($type);
 
-        // Cast to class
-        return substr($type, -2) === '[]' ?
-            static::toArray($value, substr($type, 0, -2)) :
-            static::toClass($value, $type);
+            if ($type === $valueType || is_a($this->value, $type)) {
+                $found = true;
+                break;
+            }
+            
+            if (substr($type, -2) === '[]') {
+                $subtypes[] = substr($type, 0, -2);
+            }
+        }
+        
+        if (!$found && is_array($this->value) && !empty($subtypes)) {
+            if (count($subtypes) === 1) {
+                return $this->toArray($subtypes[0]);
+            }
+            
+            $found = $this->allSubValuesAre($subtypes);
+        }
+        
+        return $found
+            ? $this->value
+            : $this->dontCastTo(join('|', $types));
     }
     
     /**
      * Cast value to a string
      *
-     * @param mixed $value
      * @return string
      */
-    public static function toString($value)
+    public function toString()
     {
-        if (is_null($value)) return null;
-    
-        if ($value instanceof \DateTime) return $value->format('c');
+        if (is_null($this->value)) {
+            return null;
+        }
+        
+        if ($this->value instanceof \DateTime) {
+            return $this->value->format('c');
+        }
 
-        if (is_resource($value)) {
-            trigger_error("Unable to cast a " . get_resource_type($value) . " resource to a string", E_USER_WARNING);
-            return $value;
+        if (
+            is_resource($this->value) ||
+            is_array($this->value) ||
+            (is_object($this->value) && !method_exists($this->value, '__toString')))
+        {
+            return $this->dontCastTo('string');
         }
         
-        if (is_array($value)) {
-            trigger_error("Unable to cast an array to a string", E_USER_WARNING);
-            return $value;
-        }
-        
-        if (is_object($value) && !method_exists($value, '__toString')) {
-            trigger_error("Unable to cast a " . get_class($value).  " object to a string", E_USER_WARNING);
-            return $value;
-        }
-        
-        return (string)$value;
+        return (string)$this->value;
     }
     
     /**
      * Cast value to a boolean
      *
-     * @param mixed $value
      * @return boolean
      */
-    public static function toBoolean($value)
+    public function toBoolean()
     {
-        if (is_null($value)) return null;
-    
-        if (is_resource($value)) {
-            trigger_error("Unable to cast a " . get_resource_type($value) . " resource to a boolean", E_USER_WARNING);
-            return $value;
+        if (is_null($this->value)) {
+            return null;
         }
         
-        if (is_object($value)) {
-            trigger_error("Unable to cast a " . get_class($value) . " object to a boolean", E_USER_WARNING);
-            return $value;
+        if (is_resource($this->value) || is_object($this->value) || is_array($this->value)) {
+            return $this->dontCastTo('boolean');
         }
         
-        if (is_array($value)) {
-            trigger_error("Unable to cast an array to a boolean", E_USER_WARNING);
-            return $value;
-        }
-        
-        if (is_string($value)) {
-            if (in_array(strtolower($value), ['1', 'true', 'yes', 'on'])) return true;
-            if (in_array(strtolower($value), ['', '0', 'false', 'no', 'off'])) return false;
+        if (is_string($this->value)) {
+            $string = strtolower(trim($this->value));
             
-            trigger_error("Unable to cast string \"$value\" to a boolean", E_USER_WARNING);
-            return $value;
+            if (in_array($string, ['1', 'true', 'yes', 'on'])) {
+                return true;
+            }
+            
+            if (in_array($string, ['', '0', 'false', 'no', 'off'])) {
+                return false;
+            }
+            
+            return $this->dontCastTo('boolean');
         }
         
-        return (bool)$value;
+        return (boolean)$this->value;
     }
     
     /**
      * Cast value to an integer
      *
-     * @param mixed $value
      * @return int
      */
-    public static function toInteger($value)
+    public function toInteger()
     {
-        return static::toNumber('integer', $value);
+        return $this->toNumber('integer', $this->value);
     }
     
     /**
      * Cast value to an integer
      *
-     * @param mixed $value
      * @return int
      */
-    public static function toFloat($value)
+    public function toFloat()
     {
-        return static::toNumber('float', $value);
+        return $this->toNumber('float', $this->value);
     }
     
     /**
      * Cast value to an integer
      *
      * @param string $type   'integer' or 'float'
-     * @param mixed  $value
      * @return int|float
      */
-    protected static function toNumber($type, $value)
+    protected function toNumber($type)
     {
-        if (is_null($value)) return null;
-    
-        if (is_resource($value)) {
-            trigger_error("Unable to cast a " . get_resource_type($value) . " resource to a $type", E_USER_WARNING);
-            return $value;
+        if (is_null($this->value)) {
+            return null;
         }
         
-        if (is_object($value)) {
-            trigger_error("Unable to cast a " . get_class($value) . " object to a $type", E_USER_WARNING);
-            return $value;
+        if (is_resource($this->value) || is_object($this->value) || is_array($this->value)) {
+            return $this->dontCastTo($type);
         }
         
-        if (is_array($value)) {
-            trigger_error("Unable to cast an array to a $type", E_USER_WARNING);
-            return $value;
-        }
-        
-        if (is_string($value)) {
-            $value = trim($value);
-            if (!is_numeric(trim($value)) && $value !== '') {
-                trigger_error("Unable to cast string \"$value\" to a $type", E_USER_WARNING);
-                return $value;
+        if (is_string($this->value)) {
+            $value = trim($this->value);
+            
+            if (!is_numeric($value) && $value !== '') {
+                return $this->dontCastTo($type);
             }
+        } else {
+            $value = $this->value;
         }
         
         settype($value, $type);
@@ -203,26 +333,34 @@ class TypeCast
     /**
      * Cast value to a typed array
      *
-     * @param mixed           $value
      * @param string|\Closure $subtype  Type of the array items
      * @return mixed
      */
-    public static function toArray($value, $subtype = null)
+    public function toArray($subtype = null)
     {
-        if (is_null($value)) return null;
-    
-        if (is_resource($value)) {
-            trigger_error("Unable to cast a " . get_resource_type($value) . " resource to an array", E_USER_WARNING);
-            return $value;
+        if (is_null($this->value)) {
+            return null;
         }
         
-        $array = $value === '' ? [] : (array)$value;
+        if (is_resource($this->value)) {
+            return $this->dontCastTo('array');
+        }
+        
+        if (is_object($this->value)) {
+            $array = $this->value instanceof \StdClass
+                ? call_user_func('get_object_vars', $this->value)
+                : [$this->value];
+        } else {
+            $array = $this->value === '' ? [] : (array)$this->value;
+        }
 
         if (isset($subtype)) {
             foreach ($array as &$item) {
-                $item = $subtype instanceof \Closure
-                    ? $subtype($item)
-                    : static::cast($item, $subtype);
+                if ($subtype instanceof \Closure) {
+                    $item = $subtype($item);
+                } else {
+                    $item = $this->forValue($item)->to($subtype);
+                }
             }
         }
         
@@ -232,56 +370,85 @@ class TypeCast
     /**
      * Cast value to an object
      *
-     * @param mixed $value
      * @return object
      */
-    public static function toObject($value)
+    public function toObject()
     {
-        if (is_null($value)) return null;
-    
-        if (is_resource($value)) {
-            trigger_error("Unable to cast a " . get_resource_type($value) . " resource to an object", E_USER_WARNING);
-            return $value;
+        if (is_null($this->value)) {
+            return null;
         }
         
-        if (is_scalar($value)) {
-            trigger_error("Unable to cast a " . gettype($value) . " to an object.", E_USER_WARNING);
-            return $value;
+        if (is_resource($this->value) || is_scalar($this->value)) {
+            return $this->dontCastTo('object');
         }
         
-        return (object)$value;
+        return (object)$this->value;
     }
     
     /**
      * Cast value to a resource
      *
-     * @param mixed $value
-     * @return object
+     * @return resource
      */
-    public static function toResource($value)
+    public function toResource()
     {
-        if (is_null($value)) return null;
-    
-        if (is_resource($value)) return $value;
-    
-        trigger_error("Unable to cast a ". gettype($value) . " to a resource.", E_USER_WARNING);
-        return $value;
+        if (is_null($this->value)) {
+            return null;
+        }
+        
+        if (is_resource($this->value)) {
+            return $this->value;
+        }
+        
+        return $this->dontCastTo('resource');
     }
     
     /**
-     * Cast value to a non-internal type
+     * Cast value to an object of a class
      *
-     * @param mixed  $value
      * @param string $class
      * @return object
      */
-    public static function toClass($value, $class)
+    public function toClass($class)
     {
-        if (is_null($value)) return null;
+        if (is_null($this->value)) {
+            return null;
+        }
         
-        if (is_object($value) && is_a($value, $class)) return $value;
+        if (is_object($this->value) && is_a($this->value, $class)) {
+            return $this->value;
+        }
         
-        if (!class_exists($class)) throw new \Exception("Invalid type '$class'");
-        return new $class($value);
+        if (strtolower($class) === 'stdclass') {
+            return $this->toStdClass();
+        }
+        
+        if (!class_exists($class)) {
+            return $this->dontCastTo("$class object", "Class not found");
+        }
+        
+        if ((is_array($this->value) || $this->value instanceof stdClass) && method_exists($class, '__set_state')) {
+            $array = is_object($this->value) ? call_user_func('get_object_vars', $this->value) : $this->value;
+            return $class::__set_state($array);
+        }
+        
+        return new $class($this->value);
+    }
+    
+    /**
+     * Cast value to a stdClass object
+     * 
+     * @return object
+     */
+    protected function toStdClass()
+    {
+        if (is_object($this->value)) {
+            $array = call_user_func('get_object_vars', $this->value);
+            $cast = $this->forValue($array);
+        } else {
+            $cast = $this;
+        }
+        
+        return $cast->toObject();            
     }
 }
