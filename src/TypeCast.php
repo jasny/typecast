@@ -167,7 +167,7 @@ class TypeCast
         }
         
         $message = "Unable to cast $valueType to $type" . (isset($explain) ? ": $explain" : '');
-        trigger_error($message, E_USER_WARNING);
+        trigger_error($message, E_USER_NOTICE);
         
         return $this->value;
     }

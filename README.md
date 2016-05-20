@@ -30,8 +30,8 @@ Jasny\TypeCast::value('987')->to('integer'); // 987
 Jasny\TypeCast::value('2015-01-01')->to('DateTime'); // DateTime object
 Jasny\TypeCast::value($data)->to('FooBar'); // FooBar object
 
-// Without syntax sugar
-Jasny\TypeCast::cast(10, 'float'); // 10.0
-Jasny\TypeCast::toFloat(10); // 10.0
+// Unable to cast
+Jasny\TypeCast::cast('red', 'float'); // 'red' + triggers a notice
+Jasny\TypeCast::cast(new stdClass(), 'int'); // stdClass object + triggers a notice
 ```
 
