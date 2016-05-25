@@ -2,7 +2,9 @@ Jasny TypeCast
 ===
 
 [![Build Status](https://travis-ci.org/jasny/typecast.svg?branch=master)](https://travis-ci.org/jasny/typecast)
-[![Coverage Status](https://coveralls.io/repos/jasny/typecast/badge.svg?branch=master&service=github)](https://coveralls.io/github/jasny/typecast?branch=master)
+[![Code Coverage](https://scrutinizer-ci.com/g/jasny/typecast/badges/coverage.png?b=master)](https://scrutinizer-ci.com/g/jasny/typecast/?branch=master)
+[![Scrutinizer Code Quality](https://scrutinizer-ci.com/g/jasny/typecast/badges/quality-score.png?b=master)](https://scrutinizer-ci.com/g/jasny/typecast/?branch=master)
+[![SensioLabsInsight](https://insight.sensiolabs.com/projects/d50691f2-4bcb-4cf7-995a-098a2ce478ac/mini.png)](https://insight.sensiolabs.com/projects/d50691f2-4bcb-4cf7-995a-098a2ce478ac)
 
 This library does [type casting in PHP](http://php.net/manual/en/language.types.type-juggling.php#language.types.typecasting).
 
