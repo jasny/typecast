@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToClass
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -22,7 +29,7 @@ trait ToClass
      * @param mixed $value
      * @return static
      */
-    protected function forValue($value);
+    abstract protected function forValue($value);
     
     
     /**
@@ -37,16 +44,16 @@ trait ToClass
             return $this->toStdClass();
         }
 
-        if (is_object($this->value) && is_a($this->value, $class)) {
-            return $this->value;
+        if (is_object($this->getValue()) && is_a($this->getValue(), $class)) {
+            return $this->getValue();
         }
         
-        if (isset($this->value) && !class_exists($class)) {
+        if ($this->getValue() !== null && !class_exists($class)) {
             return $this->dontCastTo("$class object", "Class doesn't exist");
         }
         
-        $fn = ($this->value instanceof \stdClass ? 'stdClass' : gettype($this->value)) . 'ToClass';
-        return method_exists($this, $fn) ? $this->$fn($class) : new $class($this->value);
+        $fn = ($this->getValue() instanceof \stdClass ? 'stdClass' : gettype($this->getValue())) . 'ToClass';
+        return method_exists($this, $fn) ? $this->$fn($class) : new $class($this->getValue());
     }
     
     /**
@@ -56,8 +63,8 @@ trait ToClass
      */
     protected function toStdClass()
     {
-        if (is_object($this->value) && !$this->value instanceof \stdClass) {
-            $array = get_object_vars($this->value);
+        if (is_object($this->getValue()) && !$this->getValue() instanceof \stdClass) {
+            $array = get_object_vars($this->getValue());
             $cast = $this->forValue($array);
         } else {
             $cast = $this;
@@ -87,9 +94,9 @@ trait ToClass
     protected function arrayToClass($class)
     {
         if (method_exists($class, '__set_state')) {
-            $object = $class::__set_state($this->value);
+            $object = $class::__set_state($this->getValue());
         } else {
-            $object = new $class($this->value);
+            $object = new $class($this->getValue());
         }
         
         return $object;
@@ -103,7 +110,7 @@ trait ToClass
      */
     protected function stdClassToClass($class)
     {
-        $array = get_object_vars($this->value);
+        $array = get_object_vars($this->getValue());
         return $this->forValue($array)->arrayToClass($class);
     }
 }

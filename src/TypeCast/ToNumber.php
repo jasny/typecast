@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToNumber
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -23,7 +30,7 @@ trait ToNumber
      */
     public function toInteger()
     {
-        return $this->toNumber('integer', $this->value);
+        return $this->toNumber('integer', $this->getValue());
     }
     
     /**
@@ -33,7 +40,7 @@ trait ToNumber
      */
     public function toFloat()
     {
-        return $this->toNumber('float', $this->value);
+        return $this->toNumber('float', $this->getValue());
     }
     
     /**
@@ -44,12 +51,12 @@ trait ToNumber
      */
     protected function toNumber($type)
     {
-        $fn = gettype($this->value) . 'ToNumber';
+        $fn = gettype($this->getValue()) . 'ToNumber';
         
         if (method_exists($this, $fn)) {
             $value = $this->$fn($type);
         } else {
-            $value = $this->value;
+            $value = $this->getValue();
             settype($value, $type);
         }
 
@@ -108,7 +115,7 @@ trait ToNumber
      */
     protected function stringToNumber($type)
     {
-        $value = trim($this->value);
+        $value = trim($this->getValue());
     
         if (!is_numeric($value) && $value !== '') {
             return $this->dontCastTo($type);

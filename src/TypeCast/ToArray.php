@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToArray
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -33,8 +40,8 @@ trait ToArray
      */
     public function toArray($subtype = null)
     {
-        $fn = gettype($this->value) . 'ToArray';
-        $array = method_exists($this, $fn) ? $this->$fn() : (array)$this->value;
+        $fn = gettype($this->getValue()) . 'ToArray';
+        $array = method_exists($this, $fn) ? $this->$fn() : (array)$this->getValue();
         
         if (is_array($array) && isset($subtype)) {
             $this->castArrayItem($array, $subtype);
@@ -78,7 +85,7 @@ trait ToArray
      */
     protected function stringToArray()
     {
-        return $this->value === '' ? [] : [$this->value];
+        return $this->getValue() === '' ? [] : [$this->getValue()];
     }
     
     /**
@@ -98,8 +105,8 @@ trait ToArray
      */
     protected function objectToArray()
     {
-        return $this->value instanceof \stdClass
-            ? call_user_func('get_object_vars', $this->value)
-            : [$this->value];
+        return $this->getValue() instanceof \stdClass
+            ? call_user_func('get_object_vars', $this->getValue())
+            : [$this->getValue()];
     }
 }

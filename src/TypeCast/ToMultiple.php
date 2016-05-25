@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToMultiple
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param array $type
@@ -44,7 +51,7 @@ trait ToMultiple
         if (is_string($found)) {
             return $this->to($found);
         } elseif ($found) {
-            return $this->value;
+            return $this->getValue();
         } else {
             return $this->dontCastTo(join('|', $types));
         }
@@ -57,7 +64,7 @@ trait ToMultiple
      */
     protected function allSubValuesAre($types)
     {
-        foreach ($this->value as $item) {
+        foreach ($this->getValue() as $item) {
             $compare = function ($type) use ($item) {
                 return gettype($item) === $type || is_a($item, $type);
             };
@@ -80,12 +87,12 @@ trait ToMultiple
     {
         $found = false;
         $subtypes = [];
-        $valueType = gettype($this->value);
+        $valueType = gettype($this->getValue());
         
         foreach ($types as &$type) {
             $this->normalizeType($type);
 
-            if ($type === $valueType || is_a($this->value, $type)) {
+            if ($type === $valueType || is_a($this->getValue(), $type)) {
                 $found = true;
                 break;
             }
@@ -95,7 +102,7 @@ trait ToMultiple
             }
         }
         
-        if (!$found && is_array($this->value) && !empty($subtypes)) {
+        if (!$found && is_array($this->getValue()) && !empty($subtypes)) {
             $found = $this->allSubValuesAre($subtypes);
         }
         

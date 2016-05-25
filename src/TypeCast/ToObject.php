@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToObject
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -23,14 +30,14 @@ trait ToObject
      */
     public function toObject()
     {
-        $fn = gettype($this->value) . 'ToObject';
+        $fn = gettype($this->getValue()) . 'ToObject';
         
         if (method_exists($this, $fn)) {
             $value = $this->$fn();
-        } elseif (is_scalar($this->value)) {
+        } elseif (is_scalar($this->getValue())) {
             $value = $this->dontCastTo('object');
         } else {
-            $value = (object)$this->value;
+            $value = (object)$this->getValue();
         }
         
         return $value;

@@ -76,6 +76,16 @@ class TypeCast
     
     
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    public function getValue()
+    {
+        return $this->value;
+    }
+    
+    /**
      * Add a custom alias
      * 
      * @param string $alias
@@ -141,16 +151,16 @@ class TypeCast
      */
     public function dontCastTo($type, $explain = null)
     {
-        if (is_resource($this->value)) {
-            $valueType = "a " . get_resource_type($this->value) . " resource";
-        } elseif (is_array($this->value)) {
+        if (is_resource($this->getValue())) {
+            $valueType = "a " . get_resource_type($this->getValue()) . " resource";
+        } elseif (is_array($this->getValue())) {
             $valueType = "an array";
-        } elseif (is_object($this->value)) {
-            $valueType = "a " . get_class($this->value) . " object";
-        } elseif (is_string($this->value)) {
-            $valueType = "string \"{$this->value}\"";
+        } elseif (is_object($this->getValue())) {
+            $valueType = "a " . get_class($this->getValue()) . " object";
+        } elseif (is_string($this->getValue())) {
+            $valueType = "string \"{$this->getValue()}\"";
         } else {
-            $valueType = "a " . gettype($this->value);
+            $valueType = "a " . gettype($this->getValue());
         }
         
         if (!strstr($type, '|')) {
@@ -160,6 +170,6 @@ class TypeCast
         $message = "Unable to cast $valueType to $type" . (isset($explain) ? ": $explain" : '');
         trigger_error($message, E_USER_NOTICE);
         
-        return $this->value;
+        return $this->getValue();
     }
 }

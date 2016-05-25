@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToBoolean
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -23,8 +30,8 @@ trait ToBoolean
      */
     public function toBoolean()
     {
-        $fn = gettype($this->value) . 'ToBoolean';
-        return method_exists($this, $fn) ? $this->$fn() : (boolean)$this->value;
+        $fn = gettype($this->getValue()) . 'ToBoolean';
+        return method_exists($this, $fn) ? $this->$fn() : (boolean)$this->getValue();
     }
         
     /**
@@ -74,7 +81,7 @@ trait ToBoolean
      */
     protected function stringToBoolean()
     {
-        $string = strtolower(trim($this->value));
+        $string = strtolower(trim($this->getValue()));
 
         if (in_array($string, ['1', 'true', 'yes', 'on'])) {
             return true;

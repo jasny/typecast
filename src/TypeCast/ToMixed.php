@@ -8,12 +8,19 @@ namespace Jasny\TypeCast;
 trait ToMixed
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Leave value as is
      * 
      * @return mixed
      */
     public function toMixed()
     {
-        return $this->value;
+        return $this->getValue();
     }
 }

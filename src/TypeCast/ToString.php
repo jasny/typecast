@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToString
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -23,8 +30,8 @@ trait ToString
      */
     public function toString()
     {
-        $fn = gettype($this->value) . 'ToString';
-        return method_exists($this, $fn) ? $this->$fn() : (string)$this->value;
+        $fn = gettype($this->getValue()) . 'ToString';
+        return method_exists($this, $fn) ? $this->$fn() : (string)$this->getValue();
     }
     
     
@@ -55,10 +62,10 @@ trait ToString
      */
     protected function objectToString()
     {
-        if ($this->value instanceof \DateTime) {
-            $value = $this->value->format('c');
-        } elseif (method_exists($this->value, '__toString')) {
-            $value = (string)$this->value;
+        if ($this->getValue() instanceof \DateTime) {
+            $value = $this->getValue()->format('c');
+        } elseif (method_exists($this->getValue(), '__toString')) {
+            $value = (string)$this->getValue();
         } else {
             $value = $this->dontCastTo('string');
         }

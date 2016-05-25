@@ -8,6 +8,13 @@ namespace Jasny\TypeCast;
 trait ToResource
 {
     /**
+     * Get the value
+     * 
+     * @return mixed
+     */
+    abstract public function getValue();
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -23,14 +30,14 @@ trait ToResource
      */
     public function toResource()
     {
-        $fn = gettype($this->value) . 'ToResource';
+        $fn = gettype($this->getValue()) . 'ToResource';
         
         if (method_exists($this, $fn)) {
             $value = $this->$fn();
-        } elseif (!is_resource($this->value)) {
+        } elseif (!is_resource($this->getValue())) {
             $value = $this->dontCastTo('resource');
         } else {
-            $value = $this->value;
+            $value = $this->getValue();
         }
         
         return $value;
