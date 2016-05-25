@@ -24,6 +24,14 @@ trait ToArray
     abstract public function dontCastTo($type, $explain = null);
     
     /**
+     * Cast value
+     *
+     * @param string $type
+     * @return mixed
+     */
+    abstract public function to($type);
+    
+    /**
      * Create a clone of this typecast object for a different value
      * 
      * @param mixed $value

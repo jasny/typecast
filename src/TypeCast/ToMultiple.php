@@ -30,6 +30,13 @@ trait ToMultiple
      * @return mixed
      */
     abstract public function to($type);
+
+    /**
+     * Replace alias type with full type
+     * 
+     * @param string $type
+     */
+    public function normalizeType(&$type);
     
     
     /**
@@ -65,7 +72,7 @@ trait ToMultiple
     protected function allSubValuesAre($types)
     {
         foreach ($this->getValue() as $item) {
-            $compare = function ($type) use ($item) {
+            $compare = function($type) use ($item) {
                 return gettype($item) === $type || is_a($item, $type);
             };
                 

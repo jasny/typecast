@@ -24,6 +24,14 @@ trait ToClass
     abstract public function dontCastTo($type, $explain = null);
     
     /**
+     * Cast value
+     *
+     * @param string $type
+     * @return mixed
+     */
+    abstract public function to($type);
+    
+    /**
      * Create a clone of this typecast object for a different value
      * 
      * @param mixed $value
@@ -70,7 +78,7 @@ trait ToClass
             $cast = $this;
         }
         
-        return $cast->toObject();
+        return $cast->to('object');
     }
     
     
