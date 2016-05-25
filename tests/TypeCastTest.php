@@ -476,7 +476,7 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
      * Test the exception when type casting for custom class
      *
      * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast a integer to a Jasny\TypeCastTest\NonExistent object: Class not found
+     * @expectedExceptionMessage  Unable to cast a integer to a Jasny\TypeCastTest\NonExistent object: Class doesn't exist
      */
     public function testToClassException()
     {
@@ -583,56 +583,56 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
     /**
      * Test type casting presenting multiple types
      */
-    public function testToMultiType()
+    public function testToMultiple()
     {
-        $this->assertSame(10, TypeCast::value(10)->toMultiType(['int', 'boolean']));
-        $this->assertSame(true, TypeCast::value(true)->toMultiType(['int', 'boolean']));
+        $this->assertSame(10, TypeCast::value(10)->toMultiple(['int', 'boolean']));
+        $this->assertSame(true, TypeCast::value(true)->toMultiple(['int', 'boolean']));
     }
     
     /**
      * Test type casting presenting multiple types
      */
-    public function testToMultiTypeNull()
+    public function testToMultipleNull()
     {
-        $this->assertSame(10, TypeCast::value('10')->toMultiType(['int', 'null']));
+        $this->assertSame(10, TypeCast::value('10')->toMultiple(['int', 'null']));
     }
     
     /**
      * Test type casting presenting multiple types with no matching type
      * 
      * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast string "foo" to integer|boolean
+     * @expectedExceptionMessage  Unable to cast string "foo" to int|boolean
      */
-    public function testToMultiTypeNoMatch()
+    public function testToMultipleNoMatch()
     {
-        TypeCast::value('foo')->toMultiType(['int', 'boolean']);
+        TypeCast::value('foo')->toMultiple(['int', 'boolean']);
     }
     
     /**
      * Get type casting presenting multiple types
      */
-    public function testToMultiTypeArray()
+    public function testToMultipleArray()
     {
-        $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiType(['int', 'bool[]']));
+        $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['int', 'bool[]']));
     }
     
     /**
      * Test type casting presenting multiple types
      */
-    public function testToMultiTypeTypedArray()
+    public function testToMultipleTypedArray()
     {
-        $this->assertSame([1, true, false], TypeCast::value([1, true, false])->toMultiType(['int[]', 'bool[]']));
+        $this->assertSame([1, true, false], TypeCast::value([1, true, false])->toMultiple(['int[]', 'bool[]']));
     }
     
     /**
      * Test type casting presenting multiple array types with no matching type
      * 
      * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast an array to integer[]|boolean[]
+     * @expectedExceptionMessage  Unable to cast an array to int[]|boolean[]
      */
-    public function testToMultiTypeTypedArrayNoMatch()
+    public function testToMultipleTypedArrayNoMatch()
     {
-        TypeCast::value([1, 'on', false])->toMultiType(['int[]', 'bool[]']);
+        TypeCast::value([1, 'on', false])->toMultiple(['int[]', 'boolean[]']);
     }
     
     
@@ -641,13 +641,13 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
      */
     public function testTo()
     {
-        $typecast = $this->getMock(TypeCast::class, ['toInteger', 'toArray', 'toClass', 'toMultiType'], ['123']);
+        $typecast = $this->getMock(TypeCast::class, ['toInteger', 'toArray', 'toClass', 'toMultiple'], ['123']);
         
         $typecast->expects($this->once())->id('toInteger')->method('toInteger');
         $typecast->expects($this->exactly(2))->id('toArray')->method('toArray')->after('toInteger')
             ->withConsecutive([null], ['integer']);
         $typecast->expects($this->once())->id('toClass')->method('toClass')->after('toArray')->with(FooBar::class);
-        $typecast->expects($this->once())->id('toMultiType')->method('toMultiType')->after('toClass')
+        $typecast->expects($this->once())->id('toMultiple')->method('toMultiple')->after('toClass')
             ->with(['string', 'integer[]']);
         
         $typecast->to('int');
