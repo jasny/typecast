@@ -15,6 +15,14 @@ trait ToMultiple
     abstract public function getValue();
     
     /**
+     * Create a clone of this typecast object for a different value
+     * 
+     * @param mixed $value
+     * @return static
+     */
+    abstract protected function forValue($value);
+    
+    /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
@@ -53,6 +61,7 @@ trait ToMultiple
      * @return array
      */
     abstract protected function getInternalTypes();
+    
     
     /**
      * Check if value is one of the types, otherwise trigger a warning
