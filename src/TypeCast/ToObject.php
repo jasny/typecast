@@ -10,8 +10,8 @@ trait ToObject
     /**
      * Trigger a warning that the value can't be casted and return $value
      * 
-     * @param object $type
-     * @param object $explain  Additional message
+     * @param string $type
+     * @param string $explain  Additional message
      * @return mixed
      */
     abstract public function dontCastTo($type, $explain = null);

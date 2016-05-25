@@ -71,9 +71,10 @@ trait ToMultiple
     }
     
     /**
+     * Check if value is one of the type
      * 
-     * @param type $types
-     * @return type
+     * @param array $types
+     * @return boolean|string
      */
     protected function isOneOfType($types)
     {

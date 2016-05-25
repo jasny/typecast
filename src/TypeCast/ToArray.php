@@ -10,8 +10,8 @@ trait ToArray
     /**
      * Trigger a warning that the value can't be casted and return $value
      * 
-     * @param array $type
-     * @param array $explain  Additional message
+     * @param string $type
+     * @param string $explain  Additional message
      * @return mixed
      */
     abstract public function dontCastTo($type, $explain = null);

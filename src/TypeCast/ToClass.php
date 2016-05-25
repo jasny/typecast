@@ -8,6 +8,24 @@ namespace Jasny\TypeCast;
 trait ToClass
 {
     /**
+     * Trigger a warning that the value can't be casted and return $value
+     * 
+     * @param string $type
+     * @param string $explain  Additional message
+     * @return mixed
+     */
+    abstract public function dontCastTo($type, $explain = null);
+    
+    /**
+     * Create a clone of this typecast object for a different value
+     * 
+     * @param mixed $value
+     * @return static
+     */
+    protected function forValue($value);
+    
+    
+    /**
      * Cast value to an object of a class
      *
      * @param string $class
