@@ -230,7 +230,7 @@ class TypeCast
     /**
      * Cast value to a string
      *
-     * @return string
+     * @return string|mixed
      */
     public function toString()
     {
@@ -256,7 +256,7 @@ class TypeCast
     /**
      * Cast value to a boolean
      *
-     * @return boolean
+     * @return boolean|mixed
      */
     public function toBoolean()
     {
@@ -288,7 +288,7 @@ class TypeCast
     /**
      * Cast value to an integer
      *
-     * @return int
+     * @return int|mixed
      */
     public function toInteger()
     {
@@ -298,7 +298,7 @@ class TypeCast
     /**
      * Cast value to an integer
      *
-     * @return int
+     * @return float|mixed
      */
     public function toFloat()
     {
@@ -309,7 +309,7 @@ class TypeCast
      * Cast value to an integer
      *
      * @param string $type   'integer' or 'float'
-     * @return int|float
+     * @return int|float|mixed
      */
     protected function toNumber($type)
     {
@@ -339,7 +339,7 @@ class TypeCast
      * Cast value to a typed array
      *
      * @param string|\Closure $subtype  Type of the array items
-     * @return mixed
+     * @return array|mixed
      */
     public function toArray($subtype = null)
     {
@@ -358,24 +358,35 @@ class TypeCast
         } else {
             $array = $this->value === '' ? [] : (array)$this->value;
         }
-
-        if (isset($subtype)) {
-            foreach ($array as &$item) {
-                if ($subtype instanceof \Closure) {
-                    $item = $subtype($item);
-                } else {
-                    $item = $this->forValue($item)->to($subtype);
-                }
-            }
-        }
         
+        if (isset($subtype)) {
+            $this->castArrayItem($array, $subtype);
+        }
+
         return $array;
     }
     
     /**
-     * Cast value to an object
+     * Cast each item in an array
+     * 
+     * @param array           $array
+     * @param string|\Closure $subtype
+     */
+    protected function castArrayItem(&$array, $subtype)
+    {
+        foreach ($array as &$item) {
+            if ($subtype instanceof \Closure) {
+                $item = $subtype($item);
+            } else {
+                $item = $this->forValue($item)->to($subtype);
+            }
+        }
+    }        
+    
+    /**
+     * Cast value to a stdClass object
      *
-     * @return object
+     * @return \stdClass|mixed
      */
     public function toObject()
     {
@@ -393,7 +404,7 @@ class TypeCast
     /**
      * Cast value to a resource
      *
-     * @return resource
+     * @return resource|mixed
      */
     public function toResource()
     {
@@ -412,7 +423,7 @@ class TypeCast
      * Cast value to an object of a class
      *
      * @param string $class
-     * @return object
+     * @return object|mixed
      */
     public function toClass($class)
     {
@@ -432,7 +443,7 @@ class TypeCast
             return $this->dontCastTo("$class object", "Class not found");
         }
         
-        if ((is_array($this->value) || $this->value instanceof stdClass) && method_exists($class, '__set_state')) {
+        if ((is_array($this->value) || $this->value instanceof \stdClass) && method_exists($class, '__set_state')) {
             $array = is_object($this->value) ? call_user_func('get_object_vars', $this->value) : $this->value;
             return $class::__set_state($array);
         }
