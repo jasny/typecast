@@ -85,10 +85,9 @@ trait ToClass
     /**
      * Cast null to a class
      * 
-     * @param string $class
      * @return null
      */
-    protected function nullToClass($class)
+    protected function nullToClass()
     {
         return null;
     }

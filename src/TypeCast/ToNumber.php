@@ -30,7 +30,7 @@ trait ToNumber
      */
     public function toInteger()
     {
-        return $this->toNumber('integer', $this->getValue());
+        return $this->toNumber('integer');
     }
     
     /**
@@ -40,7 +40,7 @@ trait ToNumber
      */
     public function toFloat()
     {
-        return $this->toNumber('float', $this->getValue());
+        return $this->toNumber('float');
     }
     
     /**
