@@ -36,7 +36,8 @@ class TypeCast
      */
     protected $aliases = [
         'bool' => 'boolean',
-        'int' => 'integer'
+        'int' => 'integer',
+        'mixed[]' => 'array'
     ];
     
     
@@ -117,6 +118,16 @@ class TypeCast
     }
     
     /**
+     * Get the internal types
+     * 
+     * @return array
+     */
+    protected function getInternalTypes()
+    {
+        return ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'];
+    }
+    
+    /**
      * Cast value
      *
      * @param string $type
@@ -131,7 +142,7 @@ class TypeCast
         $this->normalizeType($type);
         
         // Cast internal types
-        if (in_array($type, ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'])) {
+        if (in_array($type, $this->getInternalTypes())) {
             return call_user_func([$this, 'to' . ucfirst($type)]);
         }
 

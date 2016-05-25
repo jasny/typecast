@@ -600,6 +600,7 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
      */
     public function testToMultiple()
     {
+        $this->assertSame(null, TypeCast::value(null)->toMultiple(['int', 'boolean']));
         $this->assertSame(10, TypeCast::value(10)->toMultiple(['int', 'boolean']));
         $this->assertSame(true, TypeCast::value(true)->toMultiple(['int', 'boolean']));
     }
@@ -616,7 +617,7 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
      * Test type casting presenting multiple types with no matching type
      * 
      * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast string "foo" to int|boolean
+     * @expectedExceptionMessage  Unable to cast string "foo" to integer|boolean
      */
     public function testToMultipleNoMatch()
     {
@@ -629,6 +630,7 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
     public function testToMultipleArray()
     {
         $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['int', 'bool[]']));
+        $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['stdClass[]', 'bool[]']));
     }
     
     /**
@@ -638,16 +640,77 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
     {
         $this->assertSame([1, true, false], TypeCast::value([1, true, false])->toMultiple(['int[]', 'bool[]']));
     }
+
+    
+    /**
+     * Test type casting presenting multiple types casting a type to an array
+     */
+    public function testToMultipleTypeToTypedArray()
+    {
+        $this->assertSame([10], TypeCast::value(10)->toMultiple(['string[]', 'int[]']));
+        $this->assertSame(['foo'], TypeCast::value('foo')->toMultiple(['string[]', 'int[]']));
+    }
+    
+    /**
+     * Test type casting presenting multiple types which are type|type[]
+     */
+    public function testToMultipleTypeOrArray()
+    {
+        $this->assertSame(10, TypeCast::value('10')->toMultiple(['int', 'int[]']));
+        $this->assertSame([10, 20, 30], TypeCast::value(['10', 20, '30'])->toMultiple(['int', 'int[]']));
+    }
+
+    /**
+     * Test type casting presenting multiple types by elminiting typed arrays
+     */
+    public function testToMultipleEliminateArray()
+    {
+        $array = ['foo', false, 'bar', 10];
+        $this->assertSame($array, TypeCast::value($array)->toMultiple(['array', 'stdClass[]', 'int[]']));
+    }
+
+    /**
+     * Test type casting presenting multiple array types which are type|type[] with no matching type
+     * 
+     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedExceptionMessage  Unable to cast string "rock" to a integer
+     */
+    public function testToMultipleTypeOrArrayNoMatch()
+    {
+        TypeCast::value('rock')->toMultiple(['int', 'int[]']);
+    }
+    
+    /**
+     * Test type casting presenting multiple array types which are type|type[] with no matching type
+     * 
+     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedExceptionMessage  Unable to cast a boolean to string|integer|string[]|integer[]
+     */
+    public function testToMultipleTypeOrArrayNoMatch2()
+    {
+        TypeCast::value(true)->toMultiple(['string', 'int', 'string[]', 'int[]']);
+    }
     
     /**
      * Test type casting presenting multiple array types with no matching type
      * 
      * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast an array to int[]|boolean[]
+     * @expectedExceptionMessage  Unable to cast string "rock" to integer[]|boolean[]
+     */
+    public function testToMultipleTypedArrayNotArray()
+    {
+        TypeCast::value('rock')->toMultiple(['int[]', 'boolean[]']);
+    }
+    
+    /**
+     * Test type casting presenting multiple array types with no matching type
+     * 
+     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedExceptionMessage  Unable to cast string "rock" to integer|boolean
      */
     public function testToMultipleTypedArrayNoMatch()
     {
-        TypeCast::value([1, 'on', false])->toMultiple(['int[]', 'boolean[]']);
+        TypeCast::value([1, 'on', false, 'rock'])->toMultiple(['int[]', 'boolean[]']);
     }
     
     

@@ -83,14 +83,30 @@ trait ToBoolean
     {
         $string = strtolower(trim($this->getValue()));
 
-        if (in_array($string, ['1', 'true', 'yes', 'on'])) {
+        if (in_array($string, $this->getBooleanStrings(true))) {
             return true;
         }
 
-        if (in_array($string, ['', '0', 'false', 'no', 'off'])) {
+        if (in_array($string, $this->getBooleanStrings(false))) {
             return false;
         }
 
         return $this->dontCastTo('boolean');
+    }
+    
+    /**
+     * Get strings that represent true or false
+     * 
+     * @param boolean|null $state
+     * @return array
+     */
+    protected function getBooleanStrings($state = null)
+    {
+        $strings = [
+            false => ['', '0', 'false', 'no', 'off'],
+            true => ['1', 'true', 'yes', 'on']
+        ];
+        
+        return isset($state) ? $strings[$state] : array_merge($strings[false], $strings[true]);
     }
 }
