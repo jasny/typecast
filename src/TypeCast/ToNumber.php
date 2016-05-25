@@ -66,10 +66,9 @@ trait ToNumber
     /**
      * Cast null to number
      * 
-     * @param string $type  'integer' or 'float'
      * @return null
      */
-    protected function nullToNumber($type)
+    protected function nullToNumber()
     {
         return null;
     }

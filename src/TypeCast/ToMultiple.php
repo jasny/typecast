@@ -17,7 +17,7 @@ trait ToMultiple
     /**
      * Trigger a warning that the value can't be casted and return $value
      * 
-     * @param array $type
+     * @param string $type
      * @param array $explain  Additional message
      * @return mixed
      */
@@ -35,6 +35,7 @@ trait ToMultiple
      * Replace alias type with full type
      * 
      * @param string $type
+     * @return void
      */
     abstract public function normalizeType(&$type);
     
@@ -91,7 +92,7 @@ trait ToMultiple
         
         foreach ($types as $type) {
             if (substr($type, -2) === '[]') {
-                $subtypes[] = substr($type, 0 ,-2);
+                $subtypes[] = substr($type, 0, -2);
             }
         }
         
@@ -107,7 +108,7 @@ trait ToMultiple
     protected function allSubValuesAre($types)
     {
         foreach ($this->getValue() as $item) {
-            $compare = function($type) use ($item) {
+            $compare = function ($type) use ($item) {
                 return gettype($item) === $type || is_a($item, $type);
             };
                 
@@ -129,7 +130,7 @@ trait ToMultiple
     {
         $valueType = gettype($this->getValue());
         
-        $found = array_reduce($types, function($found, $type) use($valueType) {
+        $found = array_reduce($types, function ($found, $type) use ($valueType) {
             return $found || $type === 'mixed' || $type === $valueType || is_a($this->getValue(), $type);
         }, false);
         
@@ -145,7 +146,7 @@ trait ToMultiple
      * Guess the typecasting for multiple types
      * 
      * @param array  $types
-     * @param string $asked   The asked types
+     * @param string $asked  The asked types
      * @return mixed
      */
     protected function guessToMultiple(array $types, $asked = null)
@@ -171,7 +172,7 @@ trait ToMultiple
      * Guess the typecasting for multiple types which all are a typed array
      * 
      * @param array  $types
-     * @param string $asked
+     * @param string $asked  The asked types
      * @return mixed
      */
     protected function guessToMultipleArray(array $types, $asked)
@@ -206,9 +207,9 @@ trait ToMultiple
      * 
      * @internal The case where the value IS an array and it's an internal type is already eliminated.
      * 
-     * @param type $types
-     * @param type $subtypes
-     * @return type
+     * @param array $types
+     * @param array $subtypes
+     * @return boolean
      */
     protected function multipleIsATypeSubtypeCombination($types, $subtypes)
     {
