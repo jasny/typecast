@@ -5,9 +5,9 @@ namespace Jasny;
 use Jasny\TypeCastTest\FooBar;
 
 /**
- * @covers \Jasny\TypeCast
+ * Tests for TypeCast
  */
-class TypeCastingTest extends \PHPUnit_Framework_TestCase
+class TypeCastTest extends \PHPUnit_Framework_TestCase
 {
     /**
      * Test factory method
@@ -426,6 +426,18 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf('DateTime', $date);
         $this->assertSame('2014-06-01T01:15:00+00:00', $date->format('c'));
     }
+
+    /**
+     * Test type casting for DateTime
+     */
+    public function testToArrayObject()
+    {
+        $this->assertNull(TypeCast::value(null)->toClass('ArrayObject'));
+
+        $arrayish = TypeCast::value(['x' => 10, 'y' => 12])->toClass('ArrayObject');
+        $this->assertInstanceOf('ArrayObject', $arrayish);
+        $this->assertSame(['x' => 10, 'y' => 12], $arrayish->getArrayCopy());
+    }
     
     /**
      * Test type casting for custom class
@@ -446,6 +458,9 @@ class TypeCastingTest extends \PHPUnit_Framework_TestCase
         $this->assertInstanceOf(FooBar::class, $castedArray);
         $this->assertSame(10, $castedArray->x);
         $this->assertSame(12, $castedArray->y);
+        
+        $castedObject = TypeCast::value((object)['x' => 10, 'y' => 12])->toClass(FooBar::class);
+        $this->assertEquals($castedObject, $castedArray);
     }
     
     /**

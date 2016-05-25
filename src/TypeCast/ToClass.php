@@ -86,6 +86,6 @@ trait ToClass
     protected function stdClassToClass($class)
     {
         $array = get_object_vars($this->value);
-        return $this->arrayToClass($class);
+        return $this->forValue($array)->arrayToClass($class);
     }
 }
