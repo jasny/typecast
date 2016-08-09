@@ -35,9 +35,26 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
         $object = (object)['foo' => 'bar'];
         $typecast = TypeCast::value($object);
         
-        $this->assertSame($object, @$typecast->dontCastTo('foo'));
+        $this->assertSame($object, @$typecast->dontCastTo('string'));
     }
-    
+
+    /**
+     * Test type casting an array to a string
+     *
+     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedExceptionMessage  Unable to cast QUX from a stdClass object to a string
+     */
+    public function testSetName()
+    {
+        $object = (object)['foo' => 'bar'];
+        $typecast = TypeCast::value($object);
+
+        $ret = $typecast->setName('QUX');
+        $this->assertSame($typecast, $ret);
+
+        $this->assertSame($object, $typecast->dontCastTo('string'));
+    }
+
     
     /**
      * Test type casting to mixed
