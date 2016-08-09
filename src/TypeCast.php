@@ -31,6 +31,12 @@ class TypeCast
     protected $value;
     
     /**
+     * The display name
+     * @var string
+     */
+    protected $name;
+    
+    /**
      * Type aliases
      * @var string[]
      */
@@ -84,6 +90,19 @@ class TypeCast
     public function getValue()
     {
         return $this->value;
+    }
+    
+    /**
+     * Set the display name.
+     * This is used in notices.
+     * 
+     * @param string $name
+     * @return $this
+     */
+    public function setName($name)
+    {
+        $this->name = $name;
+        return $this;
     }
     
     /**
@@ -178,7 +197,9 @@ class TypeCast
             $type = (in_array($type, ['array', 'object']) ? 'an ' : 'a ') . $type;
         }
         
-        $message = "Unable to cast $valueType to $type" . (isset($explain) ? ": $explain" : '');
+        $name = isset($this->name) ? " {$this->name} from" : '';
+        
+        $message = "Unable to cast" . $name . " $valueType to $type" . (isset($explain) ? ": $explain" : '');
         trigger_error($message, E_USER_NOTICE);
         
         return $this->getValue();
