@@ -171,15 +171,13 @@ class TypeCast
             : $this->toClass($type);
     }
     
-    
+
     /**
-     * Trigger a warning that the value can't be casted and return $value
-     * 
-     * @param string $type
-     * @param string $explain  Additional message
-     * @return mixed
+     * Get a descript of the type of the value
+     *
+     * @return string
      */
-    public function dontCastTo($type, $explain = null)
+    protected function getValueTypeDescription()
     {
         if (is_resource($this->getValue())) {
             $valueType = "a " . get_resource_type($this->getValue()) . " resource";
@@ -192,6 +190,20 @@ class TypeCast
         } else {
             $valueType = "a " . gettype($this->getValue());
         }
+
+        return $valueType;
+    }
+    
+    /**
+     * Trigger a warning that the value can't be casted and return $value
+     * 
+     * @param string $type
+     * @param string $explain  Additional message
+     * @return mixed
+     */
+    public function dontCastTo($type, $explain = null)
+    {
+        $valueType = $this->getValueTypeDescription();
         
         if (!strstr($type, '|')) {
             $type = (in_array($type, ['array', 'object']) ? 'an ' : 'a ') . $type;
