@@ -343,12 +343,16 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
         $assoc = ['red' => 1, 'green' => 20, 'blue' => 300];
         $this->assertSame($assoc, TypeCast::value($assoc)->toArray());
         $this->assertSame($assoc, TypeCast::value((object)$assoc)->toArray());
+        $this->assertSame($assoc, TypeCast::value(new \ArrayObject($assoc))->toArray());
         
         $this->assertSame([20], TypeCast::value(20)->toArray());
         $this->assertSame([false], TypeCast::value(false)->toArray());
         $this->assertSame([], TypeCast::value('')->toArray());
         $this->assertSame(['foo'], TypeCast::value('foo')->toArray());
         $this->assertSame(['100, 30, 40'], TypeCast::value('100, 30, 40')->toArray());
+
+        $object = new \DateTime();
+        $this->assertSame([$object], TypeCast::value($object)->toArray());
     }
     
     /**
