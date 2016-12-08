@@ -113,8 +113,16 @@ trait ToArray
      */
     protected function objectToArray()
     {
-        return $this->getValue() instanceof \stdClass
-            ? call_user_func('get_object_vars', $this->getValue())
-            : [$this->getValue()];
+        $value = $this->getValue();
+
+        if ($value instanceof \Traversable) {
+            $array = iterator_to_array($value);
+        } elseif ($value instanceof \stdClass) {
+            $array = call_user_func('get_object_vars', $value);
+        } else {
+            $array = [$value];
+        }
+
+        return $array;
     }
 }
