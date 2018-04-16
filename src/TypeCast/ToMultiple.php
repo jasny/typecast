@@ -2,6 +2,8 @@
 
 namespace Jasny\TypeCast;
 
+use Jasny\TypeCastInterface;
+
 /**
  * Cast value to one of multiple types
  */
@@ -18,18 +20,18 @@ trait ToMultiple
      * Create a clone of this typecast object for a different value
      * 
      * @param mixed $value
-     * @return static
+     * @return TypeCastInterface|static
      */
-    abstract protected function forValue($value);
+    abstract public function forValue($value): TypeCastInterface;
     
     /**
      * Trigger a warning that the value can't be casted and return $value
      * 
      * @param string $type
-     * @param array $explain  Additional message
+     * @param array  $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value
@@ -37,15 +39,15 @@ trait ToMultiple
      * @param string $type
      * @return mixed
      */
-    abstract public function to($type);
+    abstract public function to(string $type);
 
     /**
      * Replace alias type with full type
      * 
      * @param string $type
-     * @return void
+     * @return string
      */
-    abstract public function normalizeType(&$type);
+    abstract public function normalizeType(string $type): string;
     
     /**
      * Get strings that represent true or false
@@ -53,14 +55,14 @@ trait ToMultiple
      * @param boolean|null $state
      * @return array
      */
-    abstract protected function getBooleanStrings($state = null);
+    abstract protected function getBooleanStrings($state = null): array;
     
     /**
      * Get the internal types
      * 
      * @return array
      */
-    abstract protected function getInternalTypes();
+    abstract protected function getInternalTypes(): array;
     
     
     /**
@@ -75,15 +77,14 @@ trait ToMultiple
             return null;
         }
         
-        $types = array_diff($types, ['null']);
-        array_walk($types, [$this, 'normalizeType']);
+        $normalTypes = array_map([$this, 'normalizeType'], array_diff($types, ['null']));
         
-        if ($this->isOneOfType($types)) {
+        if ($this->isOneOfType($normalTypes)) {
             $value = $this->getValue();
-        } elseif (count($types) === 1) {
-            $value = $this->to(reset($types));
+        } elseif (count($normalTypes) === 1) {
+            $value = $this->to(reset($normalTypes));
         } else {
-            $value = $this->guessToMultiple($types);
+            $value = $this->guessToMultiple($normalTypes);
         }
         
         return $value;
@@ -95,7 +96,7 @@ trait ToMultiple
      * @param array $types
      * @return array
      */
-    protected function getSubtypes($types)
+    protected function getSubtypes(array $types): array
     {
         $subtypes = [];
         
@@ -112,9 +113,9 @@ trait ToMultiple
      * Check that all items of value are of a specific type
      * 
      * @param array $types
-     * @return boolean
+     * @return bool
      */
-    protected function allSubValuesAre($types)
+    protected function allSubValuesAre(array $types): bool
     {
         foreach ($this->getValue() as $item) {
             $compare = function ($type) use ($item) {
@@ -133,9 +134,9 @@ trait ToMultiple
      * Match the value type against one of the types
      * 
      * @param array $types
-     * @return boolean
+     * @return bool
      */
-    public function isOneOfType(array $types)
+    public function isOneOfType(array $types): bool
     {
         $valueType = gettype($this->getValue());
         
@@ -158,20 +159,20 @@ trait ToMultiple
      * @param string $asked  The asked types
      * @return mixed
      */
-    protected function guessToMultiple(array $types, $asked = null)
+    protected function guessToMultiple(array $types, string $asked = null)
     {
         if (!isset($asked)) {
             $asked = join('|', $types);
         }
         
-        $this->eliminateTypesForMultipe($types);
+        $possibleTypes = $this->eliminateTypesForMultipe($types);
 
-        if (empty($types)) {
+        if (empty($possibleTypes)) {
             $value = $this->dontCastTo($asked);
-        } elseif (count($types) === 1) {
-            $value = $this->to(reset($types));
+        } elseif (count($possibleTypes) === 1) {
+            $value = $this->to(reset($possibleTypes));
         } else {
-            $value = $this->guessToMultipleArray($types, $asked);
+            $value = $this->guessToMultipleArray($possibleTypes, $asked);
         }
         
         return $value;
@@ -184,7 +185,7 @@ trait ToMultiple
      * @param string $asked  The asked types
      * @return mixed
      */
-    protected function guessToMultipleArray(array $types, $asked)
+    protected function guessToMultipleArray(array $types, string $asked)
     {
         $subtypes = $this->getSubtypes($types);
 
@@ -218,9 +219,9 @@ trait ToMultiple
      * 
      * @param array $types
      * @param array $subtypes
-     * @return boolean
+     * @return bool
      */
-    protected function multipleIsATypeSubtypeCombination($types, $subtypes)
+    protected function multipleIsATypeSubtypeCombination(array $types, array $subtypes): bool
     {
         return count($types) === 2 && count($subtypes) === 1 && in_array($subtypes[0], $types)
             && !is_array($this->getValue()) && !$this->getValue() instanceof \stdClass;
@@ -230,54 +231,42 @@ trait ToMultiple
      * Remove the types to which the value can't be cast
      * 
      * @param array $types
+     * @return array
      */
-    protected function eliminateTypesForMultipe(array &$types)
+    protected function eliminateTypesForMultipe(array $types): array
     {
-        $types = array_diff($types, ['resource']);
+        $exclude = $this->excludeTypeForMultiple();
         
-        $this->eliminateTypesForMultipleScalar($types);
-        $this->eliminateTypesForMultipleString($types);
-        
-        return $types;
+        return array_diff($types, $exclude);
     }
 
     /**
      * Eliminate types based on wether or not the value is a scalar
      * 
-     * @param array $types
+     * @return array
      */
-    protected function eliminateTypesForMultipleScalar(array &$types)
+    protected function excludeTypeForMultiple(): array
     {
         $value = $this->getValue();
         
         if (is_scalar($value)) {
-            $types = array_diff($types, ['stdClass']);
+            $exclude = ['resource', 'stdClass'];
         } else {
-            $types = array_diff($types, ['integer', 'float', 'boolean']);
+            $exclude = ['resource', 'integer', 'float', 'boolean'];
         
             if (!is_object($value) || !method_exists($value, '__toString')) {
-                $types = array_diff($types, ['string']);
+                $exclude[] = 'string';
             }
         }
-    }
-    
-    /**
-     * Eliminate when value is a string
-     * 
-     * @param array $types
-     */
-    protected function eliminateTypesForMultipleString(array &$types)
-    {
-        $value = $this->getValue();
         
-        if (is_string($value)) {
-            if (!is_numeric($value)) {        
-                $types = array_diff($types, ['integer', 'float']);
-            }
-
-            if (!in_array($value, $this->getBooleanStrings())) {
-                $types = array_diff($types, ['boolean']);
-            }
+        if (is_string($value) && !is_numeric($value)) {        
+            $exclude = array_merge($exclude, ['integer', 'float']);
         }
+
+        if (is_string($value) && !in_array($value, $this->getBooleanStrings())) {
+            $exclude[] = 'boolean';
+        }
+        
+        return $exclude;
     }
 }

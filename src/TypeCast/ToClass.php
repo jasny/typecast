@@ -2,6 +2,8 @@
 
 namespace Jasny\TypeCast;
 
+use Jasny\TypeCastInterface;
+
 /**
  * Type cast to an object of a specific class
  */
@@ -21,7 +23,7 @@ trait ToClass
      * @param string $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value
@@ -29,15 +31,15 @@ trait ToClass
      * @param string $type
      * @return mixed
      */
-    abstract public function to($type);
+    abstract public function to(string $type);
     
     /**
      * Create a clone of this typecast object for a different value
      * 
      * @param mixed $value
-     * @return static
+     * @return TypeCastInterface|static
      */
-    abstract protected function forValue($value);
+    abstract public function forValue($value): TypeCastInterface;
     
     
     /**
@@ -46,7 +48,7 @@ trait ToClass
      * @param string $class
      * @return object|mixed
      */
-    public function toClass($class)
+    public function toClass(string $class)
     {
         if (strtolower($class) === 'stdclass') {
             return $this->toStdClass();
@@ -96,9 +98,9 @@ trait ToClass
      * Cast an array to a class
      * 
      * @param string $class
-     * @return null
+     * @return object|null
      */
-    protected function arrayToClass($class)
+    protected function arrayToClass(string $class)
     {
         if (method_exists($class, '__set_state')) {
             $object = $class::__set_state($this->getValue());
@@ -113,11 +115,12 @@ trait ToClass
      * Cast a stdClass object to a class
      * 
      * @param string $class
-     * @return null
+     * @return object|null
      */
-    protected function stdClassToClass($class)
+    protected function stdClassToClass(string $class)
     {
         $array = get_object_vars($this->getValue());
+        
         return $this->forValue($array)->arrayToClass($class);
     }
 }

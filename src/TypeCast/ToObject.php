@@ -21,7 +21,7 @@ trait ToObject
      * @param string $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value to a object

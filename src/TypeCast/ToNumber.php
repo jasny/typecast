@@ -21,7 +21,7 @@ trait ToNumber
      * @param string $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value to an integer
@@ -49,7 +49,7 @@ trait ToNumber
      * @param string $type  'integer' or 'float'
      * @return int|float|mixed
      */
-    protected function toNumber($type)
+    protected function toNumber(string $type)
     {
         $fn = gettype($this->getValue()) . 'ToNumber';
         
@@ -79,7 +79,7 @@ trait ToNumber
      * @param string $type  'integer' or 'float'
      * @return resource
      */
-    protected function resourceToNumber($type)
+    protected function resourceToNumber(string $type)
     {
         return $this->dontCastTo($type);
     }
@@ -90,7 +90,7 @@ trait ToNumber
      * @param string $type  'integer' or 'float'
      * @return object
      */
-    protected function objectToNumber($type)
+    protected function objectToNumber(string $type)
     {
         return $this->dontCastTo($type);
     }
@@ -101,7 +101,7 @@ trait ToNumber
      * @param string $type  'integer' or 'float'
      * @return array
      */
-    protected function arrayToNumber($type)
+    protected function arrayToNumber(string $type): array
     {
         return $this->dontCastTo($type);
     }
@@ -110,9 +110,9 @@ trait ToNumber
      * Cast a string to a number
      * 
      * @param string $type  'integer' or 'float'
-     * @return number
+     * @return int|float|string
      */
-    protected function stringToNumber($type)
+    protected function stringToNumber(string $type)
     {
         $value = trim($this->getValue());
     

@@ -21,7 +21,7 @@ trait ToBoolean
      * @param string $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value to a boolean
@@ -31,6 +31,7 @@ trait ToBoolean
     public function toBoolean()
     {
         $fn = gettype($this->getValue()) . 'ToBoolean';
+        
         return method_exists($this, $fn) ? $this->$fn() : (boolean)$this->getValue();
     }
         
@@ -69,7 +70,7 @@ trait ToBoolean
      * 
      * @return array
      */
-    protected function arrayToBoolean()
+    protected function arrayToBoolean(): array
     {
         return $this->dontCastTo('boolean');
     }
@@ -77,7 +78,7 @@ trait ToBoolean
     /**
      * Cast a string to a boolean
      * 
-     * @return boolean
+     * @return boolean|string
      */
     protected function stringToBoolean()
     {
@@ -100,7 +101,7 @@ trait ToBoolean
      * @param boolean|null $state
      * @return array
      */
-    protected function getBooleanStrings($state = null)
+    protected function getBooleanStrings($state = null): array
     {
         $strings = [
             false => ['', '0', 'false', 'no', 'off'],

@@ -21,7 +21,7 @@ trait ToString
      * @param string $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value to a string
@@ -78,7 +78,7 @@ trait ToString
      * 
      * @return array
      */
-    protected function arrayToString()
+    protected function arrayToString(): array
     {
         return $this->dontCastTo('string');
     }

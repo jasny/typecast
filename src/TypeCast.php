@@ -3,27 +3,28 @@
 namespace Jasny;
 
 use Jasny\TypeCast;
+use Jasny\TypeCastInterface;
 
 /**
  * Class for type casting
  *
  *     $string = TypeCast::value($myValue)->to('string');
- *     $foo = TypeCast::value($data)->to('Foo');
+ *     $foo = TypeCast::value($data)->to(Foo:class);
  * 
  * When casting to an object of a class, the `__set_state()` method is used if available and the value is an array or a
  * stdClass object.
  */
-class TypeCast
+class TypeCast implements TypeCastInterface
 {
-    use TypeCast\ToMixed,
-        TypeCast\ToNumber,
-        TypeCast\ToString,
-        TypeCast\ToBoolean,
-        TypeCast\ToArray,
-        TypeCast\ToObject,
-        TypeCast\ToResource,
-        TypeCast\ToClass,
-        TypeCast\ToMultiple;
+    use TypeCast\ToMixed;
+    use TypeCast\ToNumber;
+    use TypeCast\ToString;
+    use TypeCast\ToBoolean;
+    use TypeCast\ToArray;
+    use TypeCast\ToObject;
+    use TypeCast\ToResource;
+    use TypeCast\ToClass;
+    use TypeCast\ToMultiple;
     
     /**
      * @var mixed
@@ -52,7 +53,7 @@ class TypeCast
      *
      * @param mixed $value
      */
-    public function __construct($value)
+    public function __construct($value = null)
     {
         $this->value = $value;
     }
@@ -61,19 +62,20 @@ class TypeCast
      * Factory method
      *
      * @param mixed $value
+     * @return static
      */
-    public static function value($value)
+    public static function value($value): self
     {
         return new static($value);
     }
     
     /**
-     * Create a clone of this typecast object for a different value
+     * Create a clone of this typecast object for a different value.
      * 
      * @param mixed $value
      * @return static
      */
-    protected function forValue($value)
+    public function forValue($value): TypeCastInterface
     {
         $cast = clone $this;
         $cast->value = $value;
@@ -99,9 +101,10 @@ class TypeCast
      * @param string $name
      * @return $this
      */
-    public function setName($name)
+    public function setName(string $name): self
     {
         $this->name = $name;
+        
         return $this;
     }
     
@@ -110,30 +113,33 @@ class TypeCast
      * 
      * @param string $alias
      * @param string $type
+     * @return $this
      */
-    public function alias($alias, $type)
+    public function alias(string $alias, string $type): self
     {
         $this->aliases[$alias] = $type;
+        
+        return $this;
     }
 
     /**
      * Replace alias type with full type
      * 
      * @param string $type
+     * @return string
      */
-    public function normalizeType(&$type)
+    public function normalizeType(string $type): string
     {
         if (substr($type, -2) === '[]') {
             $subtype = substr($type, 0, -2);
-            $this->normalizeType($subtype);
-            
-            $type = $subtype . '[]';
-            return;
+            $type = $this->normalizeType($subtype) . '[]';
         }
         
         if (isset($this->aliases[$type])) {
             $type = $this->aliases[$type];
         }
+        
+        return $type;
     }
     
     /**
@@ -141,7 +147,7 @@ class TypeCast
      * 
      * @return array
      */
-    protected function getInternalTypes()
+    protected function getInternalTypes(): array
     {
         return ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'];
     }
@@ -152,23 +158,23 @@ class TypeCast
      * @param string $type
      * @return mixed
      */
-    public function to($type)
+    public function to(string $type)
     {
         if (strstr($type, '|')) {
             return $this->toMultiple(explode('|', $type));
         }
         
-        $this->normalizeType($type);
+        $normalType = $this->normalizeType($type);
         
         // Cast internal types
-        if (in_array($type, $this->getInternalTypes())) {
-            return call_user_func([$this, 'to' . ucfirst($type)]);
+        if (in_array($normalType, $this->getInternalTypes())) {
+            return call_user_func([$this, 'to' . ucfirst($normalType)]);
         }
 
         // Cast to class
-        return substr($type, -2) === '[]'
-            ? $this->toArray(substr($type, 0, -2))
-            : $this->toClass($type);
+        return substr($normalType, -2) === '[]'
+            ? $this->toArray(substr($normalType, 0, -2))
+            : $this->toClass($normalType);
     }
     
 
@@ -177,7 +183,7 @@ class TypeCast
      *
      * @return string
      */
-    protected function getValueTypeDescription()
+    protected function getValueTypeDescription(): string
     {
         if (is_resource($this->getValue())) {
             $valueType = "a " . get_resource_type($this->getValue()) . " resource";
@@ -201,7 +207,7 @@ class TypeCast
      * @param string $explain  Additional message
      * @return mixed
      */
-    public function dontCastTo($type, $explain = null)
+    public function dontCastTo(string $type, string $explain = null)
     {
         $valueType = $this->getValueTypeDescription();
         

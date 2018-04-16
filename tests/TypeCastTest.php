@@ -55,6 +55,24 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
         $this->assertSame($object, $typecast->dontCastTo('string'));
     }
 
+    public function testForValue()
+    {
+        $typecast = new TypeCast();
+        $copy = $typecast->forValue('123');
+        
+        $this->assertSame(123, $copy->to('integer'));
+    }
+
+    public function testForValueAlias()
+    {
+        $typecast = new TypeCast();
+        $typecast->alias('foo', 'integer');
+        
+        $copy = $typecast->forValue('123');
+        
+        $this->assertSame(123, $copy->to('foo'));
+    }
+
     
     /**
      * Test type casting to mixed
@@ -616,14 +634,26 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
     }
 
     
-    /**
-     * Test type casting presenting multiple types
-     */
-    public function testToMultiple()
+    public function toMultipleProvider()
     {
-        $this->assertSame(null, TypeCast::value(null)->toMultiple(['int', 'boolean']));
-        $this->assertSame(10, TypeCast::value(10)->toMultiple(['int', 'boolean']));
-        $this->assertSame(true, TypeCast::value(true)->toMultiple(['int', 'boolean']));
+        return [
+            [null, null],
+            [1, 1],
+            [true, true]
+        ];
+    }
+    
+    /**
+     * Test type casting presenting multiple types.
+     * @dataProvider toMultipleProvider
+     * 
+     * @param mixed $expected
+     * @param mixed $value
+     */
+    public function testToMultiple($expected, $value)
+    {
+        $actual = TypeCast::value($value)->toMultiple(['int', 'boolean']);
+        $this->assertSame($expected, $actual);
     }
     
     /**

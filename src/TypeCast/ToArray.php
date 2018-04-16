@@ -2,6 +2,8 @@
 
 namespace Jasny\TypeCast;
 
+use Jasny\TypeCastInterface;
+
 /**
  * Type cast to an array
  */
@@ -21,7 +23,7 @@ trait ToArray
      * @param string $explain  Additional message
      * @return mixed
      */
-    abstract public function dontCastTo($type, $explain = null);
+    abstract public function dontCastTo(string $type, string $explain = null);
     
     /**
      * Cast value
@@ -29,15 +31,15 @@ trait ToArray
      * @param string $type
      * @return mixed
      */
-    abstract public function to($type);
+    abstract public function to(string $type);
     
     /**
      * Create a clone of this typecast object for a different value
      * 
      * @param mixed $value
-     * @return static
+     * @return TypeCastInterface|static
      */
-    abstract protected function forValue($value);
+    abstract public function forValue($value): TypeCastInterface;
     
     
     /**
@@ -91,7 +93,7 @@ trait ToArray
      * 
      * @return array
      */
-    protected function stringToArray()
+    protected function stringToArray(): array
     {
         return $this->getValue() === '' ? [] : [$this->getValue()];
     }
@@ -109,9 +111,9 @@ trait ToArray
     /**
      * Cast an object to a array
      * 
-     * @return object
+     * @return array
      */
-    protected function objectToArray()
+    protected function objectToArray(): array
     {
         $value = $this->getValue();
 
