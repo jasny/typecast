@@ -2,57 +2,46 @@
 
 namespace Jasny\TypeCast;
 
+use Jasny\TypeCast\Handler;
+
 /**
  * Type cast to a string
  */
-trait ToString
+class StringHandler extends Handler
 {
     /**
-     * Get the value
+     * Get the type what the handler is casting to.
      * 
-     * @return mixed
+     * @return string
      */
-    abstract public function getValue();
-    
-    /**
-     * Trigger a warning that the value can't be casted and return $value
-     * 
-     * @param string $type
-     * @param string $explain  Additional message
-     * @return mixed
-     */
-    abstract public function dontCastTo(string $type, string $explain = null);
+    protected function getType(): string
+    {
+        return 'string';
+    }
     
     /**
      * Cast value to a string
      *
+     * @param mixed $value
      * @return string|mixed
      */
-    public function toString()
+    public function cast($value)
     {
-        $fn = gettype($this->getValue()) . 'ToString';
-        return method_exists($this, $fn) ? $this->$fn() : (string)$this->getValue();
+        $fn = 'cast' . ucfirst(gettype($value));
+        
+        return method_exists($this, $fn) ? $this->$fn($value) : (string)$value;
     }
     
-    
-    /**
-     * Cast null to a string
-     * 
-     * @return null
-     */
-    protected function nullToString()
-    {
-        return null;
-    }
     
     /**
      * Cast a resource to a string
      * 
+     * @param resource $value
      * @return resource
      */
-    protected function resourceToString()
+    protected function castResource($value)
     {
-        return $this->dontCastTo('string');
+        return $this->dontCast($value);
     }
     
     /**

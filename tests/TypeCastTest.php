@@ -5,7 +5,7 @@ namespace Jasny;
 use Jasny\TypeCastTest\FooBar;
 
 /**
- * Tests for TypeCast
+ * Tests for TypeCast and all handlers
  */
 class TypeCastTest extends \PHPUnit_Framework_TestCase
 {

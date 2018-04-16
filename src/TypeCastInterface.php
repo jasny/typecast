@@ -15,13 +15,6 @@ interface TypeCastInterface
     public function __construct($value = null);
     
     /**
-     * Get the uncasted value
-     * 
-     * @return mixed
-     */
-    public function getValue();
-    
-    /**
      * Create a clone of this typecast object for a different value.
      * 
      * @param mixed $value

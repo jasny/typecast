@@ -4,6 +4,7 @@ namespace Jasny;
 
 use Jasny\TypeCast;
 use Jasny\TypeCastInterface;
+use Jasny\TypeCast\HandlerInterface;
 
 /**
  * Class for type casting
@@ -16,16 +17,6 @@ use Jasny\TypeCastInterface;
  */
 class TypeCast implements TypeCastInterface
 {
-    use TypeCast\ToMixed;
-    use TypeCast\ToNumber;
-    use TypeCast\ToString;
-    use TypeCast\ToBoolean;
-    use TypeCast\ToArray;
-    use TypeCast\ToObject;
-    use TypeCast\ToResource;
-    use TypeCast\ToClass;
-    use TypeCast\ToMultiple;
-    
     /**
      * @var mixed
      */
@@ -36,6 +27,12 @@ class TypeCast implements TypeCastInterface
      * @var string
      */
     protected $name;
+    
+    /**
+     * Handlers that do the actual casting
+     * @var HandlerInterface[]
+     */
+    protected $handlers;
     
     /**
      * Type aliases
@@ -51,11 +48,13 @@ class TypeCast implements TypeCastInterface
     /**
      * Class constructor
      *
-     * @param mixed $value
+     * @param mixed              $value
+     * @param HandlerInterface[] $handlers
      */
-    public function __construct($value = null)
+    public function __construct($value = null, array $handlers = null)
     {
         $this->value = $value;
+        $this->handlers = isset($handlers) ? $handlers : self::getDefaultHandlers();
     }
     
     /**
@@ -82,16 +81,22 @@ class TypeCast implements TypeCastInterface
         
         return $cast;
     }
-    
-    
+
     /**
-     * Get the value
+     * Get the handler for a type
      * 
-     * @return mixed
+     * @param string $key
+     * @param string $type
+     * @return HandlerInterface
+     * @throws \OutOfBoundsException
      */
-    public function getValue()
+    protected function getHandler(string $key, string $type = null): HandlerInterface
     {
-        return $this->value;
+        if (!isset($this->handlers[$key])) {
+            throw new \OutOfBoundsException("Unable to find handler to cast to '$type'");
+        }
+        
+        return $this->handlers[$key]->forType($type ?: $key)->usingTypecast($this);
     }
     
     /**
@@ -143,16 +148,6 @@ class TypeCast implements TypeCastInterface
     }
     
     /**
-     * Get the internal types
-     * 
-     * @return array
-     */
-    protected function getInternalTypes(): array
-    {
-        return ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'];
-    }
-    
-    /**
      * Cast value
      *
      * @param string $type
@@ -161,65 +156,38 @@ class TypeCast implements TypeCastInterface
     public function to(string $type)
     {
         if (strstr($type, '|')) {
-            return $this->toMultiple(explode('|', $type));
-        }
-        
-        $normalType = $this->normalizeType($type);
-        
-        // Cast internal types
-        if (in_array($normalType, $this->getInternalTypes())) {
-            return call_user_func([$this, 'to' . ucfirst($normalType)]);
-        }
-
-        // Cast to class
-        return substr($normalType, -2) === '[]'
-            ? $this->toArray(substr($normalType, 0, -2))
-            : $this->toClass($normalType);
-    }
-    
-
-    /**
-     * Get a descript of the type of the value
-     *
-     * @return string
-     */
-    protected function getValueTypeDescription(): string
-    {
-        if (is_resource($this->getValue())) {
-            $valueType = "a " . get_resource_type($this->getValue()) . " resource";
-        } elseif (is_array($this->getValue())) {
-            $valueType = "an array";
-        } elseif (is_object($this->getValue())) {
-            $valueType = "a " . get_class($this->getValue()) . " object";
-        } elseif (is_string($this->getValue())) {
-            $valueType = "string \"{$this->getValue()}\"";
+            $handler = $this->getHandler('multiple', $type);
         } else {
-            $valueType = "a " . gettype($this->getValue());
-        }
+            $normalType = $this->normalizeType($type);
 
-        return $valueType;
+            if (isset($this->handlers[$normalType])) {
+                $handler = $this->getHandler($normalType);
+            } else {
+                $handler = $this->getHandler(substr($normalType, -2) === '[]' ? 'array' : 'object', $type);
+            }
+        }
+        
+        return $handler->cast($this->value);
     }
     
+    
     /**
-     * Trigger a warning that the value can't be casted and return $value
+     * Get the default handlers defined by the Jasny Typecast library
      * 
-     * @param string $type
-     * @param string $explain  Additional message
-     * @return mixed
+     * @return HandlerInterface[]
      */
-    public function dontCastTo(string $type, string $explain = null)
+    public static function getDefaultHandlers(): array
     {
-        $valueType = $this->getValueTypeDescription();
-        
-        if (!strstr($type, '|')) {
-            $type = (in_array($type, ['array', 'object']) ? 'an ' : 'a ') . $type;
-        }
-        
-        $name = isset($this->name) ? " {$this->name} from" : '';
-        
-        $message = "Unable to cast" . $name . " $valueType to $type" . (isset($explain) ? ": $explain" : '');
-        trigger_error($message, E_USER_NOTICE);
-        
-        return $this->getValue();
+        return [
+            'array' => new TypeCast\ArrayHandler(),
+            'boolean' => new TypeCast\BooleanHandler(),
+            'float' => new TypeCast\FloatHandler(),
+            'integer' => new TypeCast\IntegerHandler(),
+            'mixed' => new TypeCast\MixedHandler(),
+            'object' => new TypeCast\ObjectHandler(),
+            'resource' => new TypeCast\ResourceHandler(),
+            'string' => new TypeCast\StringHandler(),
+            'multiple' => new TypeCast\MultipleHandler()
+        ];
     }
 }
