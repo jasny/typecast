@@ -77,7 +77,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultiple($expected, $value)
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $actual = TypeCast::value($value)->toMultiple(['int', 'boolean']);
         $this->assertSame($expected, $actual);
@@ -88,7 +88,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleNull()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $this->assertSame(10, TypeCast::value('10')->toMultiple(['int', 'null']));
     }
@@ -101,7 +101,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleNoMatch()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         TypeCast::value('foo')->toMultiple(['int', 'boolean']);
     }
@@ -111,7 +111,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleArray()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['int', 'bool[]']));
         $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['stdClass[]', 'bool[]']));
@@ -122,7 +122,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypedArray()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $this->assertSame([1, true, false], TypeCast::value([1, true, false])->toMultiple(['int[]', 'bool[]']));
     }
@@ -133,7 +133,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypeToTypedArray()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $this->assertSame([10], TypeCast::value(10)->toMultiple(['string[]', 'int[]']));
         $this->assertSame(['foo'], TypeCast::value('foo')->toMultiple(['string[]', 'int[]']));
@@ -144,7 +144,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypeOrArray()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $this->assertSame(10, TypeCast::value('10')->toMultiple(['int', 'int[]']));
         $this->assertSame([10, 20, 30], TypeCast::value(['10', 20, '30'])->toMultiple(['int', 'int[]']));
@@ -155,7 +155,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleEliminateArray()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         $array = ['foo', false, 'bar', 10];
         $this->assertSame($array, TypeCast::value($array)->toMultiple(['array', 'stdClass[]', 'int[]']));
@@ -169,7 +169,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypeOrArrayNoMatch()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         TypeCast::value('rock')->toMultiple(['int', 'int[]']);
     }
@@ -182,7 +182,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypeOrArrayNoMatch2()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         TypeCast::value(true)->toMultiple(['string', 'int', 'string[]', 'int[]']);
     }
@@ -195,7 +195,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypedArrayNotArray()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         TypeCast::value('rock')->toMultiple(['integer[]', 'boolean[]']);
     }
@@ -208,7 +208,7 @@ class MultipleHandlerTest extends TestCase
      */
     public function testToMultipleTypedArrayNoMatch()
     {
-        $this->markTestIncomplete();
+        return $this->markTestSkipped();
         
         TypeCast::value([1, 'on', false, 'rock'])->toMultiple(['integer[]', 'boolean[]']);
     }

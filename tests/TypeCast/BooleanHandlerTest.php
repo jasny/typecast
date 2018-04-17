@@ -88,11 +88,11 @@ class BooleanHandlerTest extends TestCase
     
     /**
      * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast QUX string "foo" to boolean
+     * @expectedExceptionMessage  Unable to cast QUX from string "foo" to boolean
      */
     public function testCastUsingName()
     {
-        $this->handler->cast('foo');
+        $this->handler->withName('QUX')->cast('foo');
     }
     
     /**

@@ -43,4 +43,12 @@ class FooBar
         
         return $foobar;
     }
+    
+    /**
+     * @return string
+     */
+    public function __toString()
+    {
+        return 'foo';
+    }
 }
