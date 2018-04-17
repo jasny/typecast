@@ -10,6 +10,15 @@ use Jasny\TypeCastInterface;
 interface HandlerInterface
 {
     /**
+     * Set the display name.
+     * This is used in notices.
+     * 
+     * @param string $name
+     * @return static
+     */
+    public function withName($name): self;
+    
+    /**
      * Use handler to cast to type.
      * 
      * @param string $type

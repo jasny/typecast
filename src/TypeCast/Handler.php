@@ -10,6 +10,31 @@ use Jasny\TypeCastInterface;
 abstract class Handler implements HandlerInterface
 {
     /**
+     * Variable or property name
+     * @var string
+     */
+    protected $name;
+    
+    /**
+     * Set the display name.
+     * This is used in notices.
+     * 
+     * @param string|null $name
+     * @return static
+     */
+    public function withName($name): HandlerInterface
+    {
+        if ($this->name === $name) {
+            return $this;
+        }
+        
+        $handler = clone $this;
+        $handler->name = $name;
+        
+        return $handler;
+    }
+    
+    /**
      * Set typecast
      * 
      * @param TypeCastInterface $typecast
@@ -52,15 +77,13 @@ abstract class Handler implements HandlerInterface
     protected function getValueTypeDescription($value): string
     {
         if (is_resource($value)) {
-            $valueType = "a " . get_resource_type($value) . " resource";
-        } elseif (is_array($value)) {
-            $valueType = "an array";
+            $valueType = get_resource_type($value) . " resource";
         } elseif (is_object($value)) {
-            $valueType = "a " . get_class($value) . " object";
+            $valueType = get_class($value) . " object";
         } elseif (is_string($value)) {
             $valueType = "string \"{$value}\"";
         } else {
-            $valueType = "a " . gettype($value);
+            $valueType = gettype($value);
         }
 
         return $valueType;
@@ -78,9 +101,9 @@ abstract class Handler implements HandlerInterface
         $valueType = $this->getValueTypeDescription($value);
         
         $type = $this->getType();
-        $name = isset($this->name) ? " {$this->name} from" : '';
+        $cast = isset($this->name) ? "cast {$this->name} from" : "cast";
         
-        $message = "Unable to cast {$name} {$valueType} to $type" . (isset($explain) ? ": $explain" : '');
+        $message = "Unable to {$cast} {$valueType} to $type" . (isset($explain) ? ": $explain" : '');
         trigger_error($message, E_USER_NOTICE);
         
         return $value;

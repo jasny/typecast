@@ -46,8 +46,14 @@ class ArrayHandler extends Handler
             throw new \LogicException("Unable to use " . get_class($this) . " to cast to $type");
         }
 
+        $subtype = $type === 'array' ? null : substr($type, 0, -2);
+
+        if ($subtype === $this->subtype) {
+            return $this;
+        }
+        
         $handler = clone $this;
-        $handler->subtype = $type === 'array' ? null : substr($this->subtype, 0, -2);
+        $handler->subtype = $subtype;
         
         return $handler;
     }
@@ -107,7 +113,7 @@ class ArrayHandler extends Handler
      */
     protected function castResource($value)
     {
-        return $this->dontCastTo($value, 'array');
+        return $this->dontCast($value);
     }
     
     /**
@@ -118,8 +124,14 @@ class ArrayHandler extends Handler
      */
     protected function castObject($value): array
     {
-        return $value instanceof \stdClass
-            ? call_user_func('get_object_vars', $value)
-            : [$value];
+        if ($value instanceof \Traversable) {
+            return iterator_to_array($value);
+        }
+        
+        if ($value instanceof \stdClass) {
+            return call_user_func('get_object_vars', $value);
+        }
+        
+        return [$value];
     }
 }

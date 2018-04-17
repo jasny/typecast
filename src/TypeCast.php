@@ -54,7 +54,7 @@ class TypeCast implements TypeCastInterface
     public function __construct($value = null, array $handlers = null)
     {
         $this->value = $value;
-        $this->handlers = isset($handlers) ? $handlers : self::getDefaultHandlers();
+        $this->handlers = $handlers ?? $this->getDefaultHandlers();
     }
     
     /**
@@ -90,13 +90,17 @@ class TypeCast implements TypeCastInterface
      * @return HandlerInterface
      * @throws \OutOfBoundsException
      */
-    protected function getHandler(string $key, string $type = null): HandlerInterface
+    public function getHandler(string $key, string $type = null): HandlerInterface
     {
+        if (!isset($type)) {
+            $type = $key;
+        }
+        
         if (!isset($this->handlers[$key])) {
             throw new \OutOfBoundsException("Unable to find handler to cast to '$type'");
         }
         
-        return $this->handlers[$key]->forType($type ?: $key)->usingTypecast($this);
+        return $this->handlers[$key]->forType($type)->usingTypecast($this)->withName($this->name);
     }
     
     /**

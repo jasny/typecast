@@ -28,12 +28,17 @@ class MultipleHandler extends Handler
      * 
      * @param string $type
      * @return static
-     * @throws \LogicException if handler can't be used
      */
     public function forType(string $type): HandlerInterface
     {
+        $types = array_unique(explode('|', $type));
+        
+        if (count($types) === count($this->types) && count(array_diff($types, $this->types)) === 0) {
+            return $this;
+        }
+        
         $handler = clone $this;
-        $handler->types = array_unique(explode('|', $type));
+        $handler->types = $types;
         
         return $handler;
     }

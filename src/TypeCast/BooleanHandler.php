@@ -29,7 +29,7 @@ class BooleanHandler extends Handler
     {
         $fn = 'cast' . ucfirst(gettype($value));
         
-        return method_exists($this, $fn) ? $this->$fn() : (boolean)$value;
+        return method_exists($this, $fn) ? $this->$fn($value) : (boolean)$value;
     }
     
     /**
@@ -73,7 +73,7 @@ class BooleanHandler extends Handler
      */
     protected function castString($value)
     {
-        $string = strtolower(trim($this->getValue()));
+        $string = strtolower(trim($value));
 
         if (in_array($string, self::getBooleanStrings(true))) {
             return true;

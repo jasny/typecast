@@ -26,5 +26,10 @@
         "psr-4": {
             "Jasny\\": "src/"
         }
+    },
+    "autoload-dev": {
+        "psr-4": {
+            "Jasny\\": "tests/"
+        }
     }
 }

@@ -34,8 +34,14 @@ class ObjectHandler extends Handler
      */
     public function forType(string $type): HandlerInterface
     {
+        $class = $type !== 'object' ? $type : null;
+        
+        if ($class === $this->class) {
+            return $this;
+        }
+        
         $handler = clone $this;
-        $handler->class = $type !== 'object' ? $type : null;
+        $handler->class = $class;
         
         return $handler;
     }
@@ -53,10 +59,6 @@ class ObjectHandler extends Handler
         }
         
         $fn = 'cast' . ucfirst(gettype($value));
-        
-        if (method_exists($this, $fn)) {
-            return $this->$fn($value);
-        }
         
         switch (strtolower($this->class)) {
             case '':
@@ -76,7 +78,7 @@ class ObjectHandler extends Handler
      */
     protected function castToObject($value)
     {
-        if (is_scalar($value)) {
+        if (is_scalar($value) || is_resource($value)) {
             $value = $this->dontCast($value);
         }
         
@@ -113,35 +115,42 @@ class ObjectHandler extends Handler
             return $value;
         }
         
-        $class = $this->class;
+        $value = $this->createWithSetState($value);
         
-        return method_exists($class, '__set_state')
-            ? $this->classSetState($value)
-            : new $class($value);
+        if (!is_a($value, $this->class)) {
+            $class = $this->class;
+            $value = new $class($value);
+        }
+        
+        return $value;
     }
     
     /**
-     * Create object using __set_state
+     * Create object using __set_state.
+     * @internal Internal objects expect an array but do lot list paramaters, so checking `empty($parmas)`.
      * 
      * @param mixed $value
      * @return object|mixed
      */
-    protected function classSetState($value)
+    protected function createWithSetState($value)
     {
-        $class = $this->class;
-        $method = new \ReflectionMethod($class, '__set_state');
-        $param = $method->getParameters()[0];
+        if (!method_exists($this->class, '__set_state')) {
+            return $value;
+        }
         
-        if ($param->getType() === 'array') {
+        $method = new \ReflectionMethod($this->class, '__set_state');
+        $params = $method->getParameters();
+        
+        if (empty($params) || (string)$params[0]->getType() === 'array') {
             if ($value instanceof \stdClass) {
                 $value = get_object_vars($value);
             }
-
+            
             if (!is_array($value)) {
-                return $this->dontCast($value, "{$class}::__set_state() expects an array");
+                return $value;
             }
         }
         
-        return $class::__set_state($value);
+        return $method->invoke(null, $value);
     }
 }

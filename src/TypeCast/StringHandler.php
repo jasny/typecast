@@ -47,28 +47,30 @@ class StringHandler extends Handler
     /**
      * Cast an object to a string
      * 
+     * @param mixed $value
      * @return object
      */
-    protected function objectToString()
+    protected function castObject($value)
     {
-        if ($this->getValue() instanceof \DateTime) {
-            $value = $this->getValue()->format('c');
-        } elseif (method_exists($this->getValue(), '__toString')) {
-            $value = (string)$this->getValue();
-        } else {
-            $value = $this->dontCastTo('string');
+        if ($value instanceof \DateTime) {
+            return $value->format('c');
         }
         
-        return $value;
+        if (method_exists($value, '__toString')) {
+            return (string)$value;
+        }
+        
+        return $this->dontCast($value);
     }
     
     /**
      * Cast an array to a string
      * 
+     * @param mixed $value
      * @return array
      */
-    protected function arrayToString(): array
+    protected function castArray($value): array
     {
-        return $this->dontCastTo('string');
+        return $this->dontCast($value);
     }
 }
