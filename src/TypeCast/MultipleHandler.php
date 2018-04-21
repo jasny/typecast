@@ -4,13 +4,18 @@ namespace Jasny\TypeCast;
 
 use Jasny\TypeCast\Handler;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\BooleanHandler;
+use Jasny\TypeCast\TypeGuess;
 
 /**
  * Cast value to one of multiple types
  */
 class MultipleHandler extends Handler
 {
+    /**
+     * @var TypeGuess
+     */
+    protected $typeguess;
+    
     /**
      * @var TypeCastInterface 
      */
@@ -24,6 +29,16 @@ class MultipleHandler extends Handler
     
     
     /**
+     * Class constructor
+     * 
+     * @param TypeGuess $typeguess
+     */
+    public function __construct(TypeGuess $typeguess = null)
+    {
+        $this->typeguess = $typeguess ?? new TypeGuess();
+    }
+    
+    /**
      * Use handler to cast to type.
      * 
      * @param string $type
@@ -31,14 +46,25 @@ class MultipleHandler extends Handler
      */
     public function forType(string $type): HandlerInterface
     {
-        $types = array_unique(explode('|', $type));
+        return $this->forTypes(explode('|', $type));
+    }
+
+    /**
+     * Use handler to cast to type.
+     * 
+     * @param string[] $types
+     * @return static
+     */
+    public function forTypes(array $types): HandlerInterface
+    {
+        $unique = array_unique($types);
         
-        if (count($types) === count($this->types) && count(array_diff($types, $this->types)) === 0) {
+        if (count($unique) === count($this->types) && count(array_udiff($unique, $this->types, 'strcasecmp')) === 0) {
             return $this;
         }
         
         $handler = clone $this;
-        $handler->types = $types;
+        $handler->types = $unique;
         
         return $handler;
     }
@@ -80,74 +106,48 @@ class MultipleHandler extends Handler
             throw new \LogicException("Type cast for multiple handler not set");
         }
         
-        if ($value === null) {
-            return null;
-        }
-        
-        $normalTypes = array_map([$this->typecast, 'normalizeType'], array_diff($this->types, ['null']));
-        
-        return $this->forTypes($normalTypes)->castNormalized($value);
-    }
-    
-    /**
-     * Cast to normalized type
-     * 
-     * @param mixed $value
-     * @return type
-     */
-    protected function castNormalized($value)
-    {
-        if ($this->isOneOfType()) {
+        if ($value === null || in_array('mixed', $this->types)) {
             return $value;
         }
         
-        if (count($this->types) === 1) {
-            return $this->typecast->forValue($value)->to(reset($this->types));
-        }
-        
-        $possibleTypes = array_diff($this->types, $this->excludeTypeForMultiple());
-        
-        return $this->forTypes($possibleTypes)->guessToMultiple($value);
+        return $this->excludeTypes($value)->castIfPossible($value);
     }
     
     /**
-     * Get the subtypes 
+     * Cast if there is only a single option
      * 
-     * @param array $types
+     * @param mixed $value
+     * @return mixed
+     */
+    protected function castIfPossible($value)
+    {
+        if (empty($this->types)) {
+            return $this->dontCast($value);
+        }
+
+        $handler = count($this->types) === 1 ? $this : $this->reduceTypes($value);
+        
+        if ($handler->matchAnyType($value)) {
+            return $value;
+        }
+        
+        if (count($handler->types) === 1) {
+            return $this->typecast->forValue($value)->to(reset($handler->types));
+        }
+        
+        return $this->dontCast($value);
+    }
+    
+    /**
+     * Get subtypes for typed arrays
+     * 
      * @return array
      */
     protected function getSubtypes(): array
     {
-        $subtypes = [];
-        
-        foreach ($this->types as $type) {
-            if (substr($type, -2) === '[]') {
-                $subtypes[] = substr($type, 0, -2);
-            }
-        }
-        
-        return $subtypes;
-    }
-    
-    /**
-     * Check that all items of value are of a specific type
-     * 
-     * @param mixed $value
-     * @return bool
-     */
-    protected function allValuesAre($value): bool
-    {
-        foreach ($value as $item) {
-            $compare = function ($type) use ($item) {
-                return gettype($item) === $type || is_a($item, $type);
-            };
-                
-            if (max(array_map($compare, $this->types)) !== true) {
-                return false;
-            }
-        }
-        
-        return true;
+        return array_filter(array_map(function($type) {
+            return substr($type, -2) === '[]' ? substr($type, 0, -2) : null;
+        }, $this->types));        
     }
     
     /**
@@ -156,120 +156,45 @@ class MultipleHandler extends Handler
      * @param mixed $value
      * @return bool
      */
-    public function isOneOfType($value): bool
+    protected function matchAnyType($value): bool
     {
         $valueType = gettype($value);
         
-        $found = array_reduce($this->types, function ($found, $type) use ($value, $valueType) {
-            return $found || $type === 'mixed' || $type === $valueType || is_a($value, $type);
+        return array_reduce($this->types, function($found, $type) use ($value, $valueType) {
+            return $found || strtolower($type) === $valueType || is_a($value, $type)
+                || (is_array($value) && substr($type, -2) === '[]'
+                    && $this->forType(substr($type, 0, -2))->allMatchAnyType($value));
         }, false);
-        
-        if (!$found && is_array($value)) {
-            $subtypes = $this->getSubtypes();
-            $found = !empty($subtypes) && $this->forTypes($subtypes)->allValuesAre($value);
-        }
-        
-        return $found;
     }
     
     /**
-     * Guess the typecasting for multiple types
+     * All items in the array match any of the given types
      * 
-     * @param mixed $value
-     * @return mixed
-     */
-    protected function guessToMultiple($value)
-    {
-        if (empty($this->types)) {
-            return $this->dontCast($value);
-        }
-        
-        if (count($this->types) === 1) {
-            return $this->typecast->forValue($value)->to(reset($this->types));
-        }
-        
-        return $this->forTypes($this->types)->guessToMultipleArray($value);
-    }
-    
-    /**
-     * Guess the typecasting for multiple types which all are a typed array
-     * 
-     * @param mixed $value
-     * @return mixed
-     */
-    protected function guessToMultipleArray($value)
-    {
-        $subtypes = $this->getSubtypes();
-
-        if ($this->multipleIsATypeSubtypeCombination($value, $subtypes)) {
-            return $this->typecast->forValue($value)->to($subtypes[0]);
-        }
-        
-        if (count($subtypes) !== count($this->types)) {
-            return $this->dontCast($value);
-        }
-        
-        if ($this->forTypes($subtypes)->isOneOfType($value)) {
-            $value = [$value];
-        }
-        
-        if (is_object($value) && $value instanceof \stdClass) {
-            $value = get_object_vars($value);
-        } elseif (!is_array($value)) {
-            $value = [$value];
-        }
-        
-        $subcast = $this->forTypes($subtypes);
-
-        foreach ($value as &$item) {
-            $item = $subcast->cast($item);
-        }
-        
-        return $value;
-    }
-    
-    /**
-     * Check if multiple is a type and subtype combi (eg int|int[]) and value is not an array.
-     * 
-     * @internal The case where the value IS an array and it's an internal type is already eliminated.
-     * 
-     * @param mixed $value
-     * @param array $subtypes
+     * @param array $value
      * @return bool
      */
-    protected function multipleIsATypeSubtypeCombination($value, array $subtypes): bool
+    protected function allMatchAnyType(array $value): bool
     {
-        return count($this->types) === 2 && count($subtypes) === 1 && in_array($subtypes[0], $this->types)
-            && !is_array($value) && !$value instanceof \stdClass;
+        return array_reduce($value, function($match, $item) {
+            return $match && $this->matchAnyType($item);
+        }, true);
     }
     
     /**
-     * Eliminate types based on wether or not the value is a scalar
+     * Eliminate types based on the value and specific combinations
      * 
-     * @return array
+     * @param mixed $value
+     * @return static
      */
-    protected function excludeTypeForMultiple(): array
+    protected function excludeTypes($value): self
     {
-        $value = $value;
-        
-        if (is_scalar($value)) {
-            $exclude = ['resource', 'stdClass'];
-        } else {
-            $exclude = ['resource', 'integer', 'float', 'boolean'];
-        
-            if (!is_object($value) || !method_exists($value, '__toString')) {
-                $exclude[] = 'string';
-            }
+        if (count($this->types) === 2 && in_array('null', $this->types)) {
+            return $this->forTypes(array_diff($this->types, ['null']));
         }
         
-        if (is_string($value) && !is_numeric($value)) {        
-            $exclude = array_merge($exclude, ['integer', 'float']);
-        }
-
-        if (is_string($value) && !in_array($value, BooleanHandler::getBooleanStrings())) {
-            $exclude[] = 'boolean';
-        }
+        $types = $this->getPossibleTypes($value);
         
-        return $exclude;
+        return $this->forTypes($types);
     }
+    
 }

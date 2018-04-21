@@ -10,6 +10,12 @@ use Jasny\TypeCastInterface;
 abstract class Handler implements HandlerInterface
 {
     /**
+     * E_* or Throwable class name
+     * @var int|string|bool
+     */
+    protected $failure = E_USER_NOTICE;
+    
+    /**
      * Variable or property name
      * @var string
      */
@@ -32,6 +38,17 @@ abstract class Handler implements HandlerInterface
         $handler->name = $name;
         
         return $handler;
+    }
+    
+    /**
+     * Set the warning level or throwable when variable can't be cased to type.
+     * Set to `false` to not give any warning or error.
+     * 
+     * @param int|string|bool $level  E_* or Throwable class name
+     */
+    public function onFailure($level)
+    {
+        $this->failure = $level;
     }
     
     /**
@@ -98,13 +115,21 @@ abstract class Handler implements HandlerInterface
      */
     protected function dontCast($value, string $explain = null)
     {
-        $valueType = $this->getValueTypeDescription($value);
-        
-        $type = $this->getType();
-        $cast = isset($this->name) ? "cast {$this->name} from" : "cast";
-        
-        $message = "Unable to {$cast} {$valueType} to $type" . (isset($explain) ? ": $explain" : '');
-        trigger_error($message, E_USER_NOTICE);
+        if ($this->failure) {
+            $valueType = $this->getValueTypeDescription($value);
+
+            $type = $this->getType();
+            $cast = isset($this->name) ? "cast {$this->name} from" : "cast";
+
+            $message = "Unable to {$cast} {$valueType} to $type" . (isset($explain) ? ": $explain" : '');
+
+            if (is_int($this->failure)) {
+                trigger_error($message, $this->failure);
+            } else {
+                $class = $this->failure;
+                throw new $class($message);
+            }
+        }
         
         return $value;
     }

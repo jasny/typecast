@@ -17,6 +17,14 @@ interface HandlerInterface
      * @return static
      */
     public function withName($name): self;
+
+    /**
+     * Set the warning level or throwable when variable can't be cased to type.
+     * 
+     * @param int|string $level  E_* or Throwable class name
+     * @return static
+     */
+    public function onFailure($level);
     
     /**
      * Use handler to cast to type.

@@ -54,7 +54,7 @@ class TypeCast implements TypeCastInterface
     public function __construct($value = null, array $handlers = null)
     {
         $this->value = $value;
-        $this->handlers = $handlers ?? $this->getDefaultHandlers();
+        $this->handlers = $handlers ?? static::getDefaultHandlers();
     }
     
     /**
@@ -139,16 +139,17 @@ class TypeCast implements TypeCastInterface
      */
     public function normalizeType(string $type): string
     {
+        if (strstr($type, '|')) {
+            $types = array_map([$this, __FUNCTION__], explode('|', $type));
+            return join('|', $types);
+        }
+        
         if (substr($type, -2) === '[]') {
             $subtype = substr($type, 0, -2);
-            $type = $this->normalizeType($subtype) . '[]';
+            return $this->normalizeType($subtype) . '[]';
         }
         
-        if (isset($this->aliases[$type])) {
-            $type = $this->aliases[$type];
-        }
-        
-        return $type;
+        return $this->aliases[$type] ?? $type;
     }
     
     /**
@@ -159,16 +160,14 @@ class TypeCast implements TypeCastInterface
      */
     public function to(string $type)
     {
+        $normalType = $this->normalizeType($type);
+        
         if (strstr($type, '|')) {
-            $handler = $this->getHandler('multiple', $type);
+            $handler = $this->getHandler('multiple', $normalType);
+        } elseif (isset($this->handlers[$normalType])) {
+            $handler = $this->getHandler($normalType);
         } else {
-            $normalType = $this->normalizeType($type);
-
-            if (isset($this->handlers[$normalType])) {
-                $handler = $this->getHandler($normalType);
-            } else {
-                $handler = $this->getHandler(substr($normalType, -2) === '[]' ? 'array' : 'object', $type);
-            }
+            $handler = $this->getHandler(substr($normalType, -2) === '[]' ? 'array' : 'object', $normalType);
         }
         
         return $handler->cast($this->value);

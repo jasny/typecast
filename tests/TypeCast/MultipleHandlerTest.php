@@ -3,6 +3,8 @@
 namespace Jasny\TypeCast;
 
 use PHPUnit\Framework\TestCase;
+use PHPUnit_Framework_MockObject_MockObject as MockObject;
+use Jasny\TypeCast;
 use Jasny\TypeCastInterface;
 use Jasny\TypeCast\MultipleHandler;
 
@@ -13,6 +15,11 @@ use Jasny\TypeCast\MultipleHandler;
 class MultipleHandlerTest extends TestCase
 {
     use \Jasny\TestHelper;
+
+    /**
+     * @var TypeCast|MockObject
+     */
+    protected $typecast;
     
     /**
      * @var MultipleHandler
@@ -21,19 +28,22 @@ class MultipleHandlerTest extends TestCase
     
     public function setUp()
     {
-        $this->handler = new MultipleHandler();
+        $this->typecast = $this->createMock(TypeCast::class);
+        
+        $this->handler = (new MultipleHandler())->usingTypecast($this->typecast);
     }
     
     public function testUsingTypecast()
     {
         $typecast = $this->createMock(TypeCastInterface::class);
         
-        $newHandler = $this->handler->usingTypecast($typecast);
+        $handler = new MultipleHandler();
+        $newHandler = $handler->usingTypecast($typecast);
         
         $this->assertNotSame($this->handler, $newHandler);
         $this->assertAttributeSame($typecast, 'typecast', $newHandler);
         
-        $this->assertAttributeSame(null, 'typecast', $this->handler);
+        $this->assertAttributeSame(null, 'typecast', $handler);
     }
     
     public function testForType()
@@ -60,156 +70,91 @@ class MultipleHandlerTest extends TestCase
         $this->assertAttributeEquals(['string', 'integer[]'], 'types', $ret);
     }
     
-    public function toMultipleProvider()
+    public function castNopProvider()
     {
         return [
-            [null, null],
-            [1, 1],
-            [true, true]
+            [null, 'integer|boolean'],
+            [1, 'integer|boolean'],
+            [true, 'integer|boolean'],
+            ['on', 'string|boolean'],
+            ['foo', 'string|integer|float']
         ];
     }
     
     /**
-     * @dataProvider toMultipleProvider
-     * 
-     * @param mixed $expected
-     * @param mixed $value
+     * @dataProvider castNopProvider
      */
-    public function testToMultiple($expected, $value)
+    public function testCastNop($value, $type)
     {
-        return $this->markTestSkipped();
+        $this->typecast->expects($this->never())->method('forValue');
+        $this->typecast->expects($this->never())->method('to');
         
-        $actual = TypeCast::value($value)->toMultiple(['int', 'boolean']);
-        $this->assertSame($expected, $actual);
+        $actual = $this->handler->forType($type)->cast($value);
+        $this->assertSame($value, $actual);
+    }
+    
+    public function testCastReturn()
+    {
+        $this->typecast->expects($this->once())->method('forValue')->with('10')->willReturnSelf();
+        $this->typecast->expects($this->once())->method('to')->with('integer')->willReturn('ten');
+        
+        $ret = $this->handler->forType('integer')->cast('10');
+        $this->assertSame('ten', $ret);
+    }
+    
+    public function castProvider()
+    {
+        return [
+            ['10.0', 'integer|boolean', 'integer'],
+            ['1', 'integer|boolean', 'integer'],
+            ['on', 'integer|boolean', 'boolean'],
+            ['10.0', 'integer|float', 'float'],
+            ['10.0', 'string|integer|float', 'float'],
+            ['10', 'string|integer|float', 'integer'],
+            ['10', 'integer|null', 'integer'],
+            ['10', 'array|null', 'array'],
+            ['10', 'integer|array|stdClass', 'integer'],
+            ['2018-01-03', 'integer|DateTime|string', 'DateTime'],
+            ['hello', 'integer|Foo|Foo[]', 'Foo']
+        ];
     }
     
     /**
-     * Test type casting presenting multiple types
+     * @dataProvider castProvider
      */
-    public function testToMultipleNull()
+    public function testCast($value, $types, $expected)
     {
-        return $this->markTestSkipped();
+        $this->typecast->expects($this->once())->method('forValue')->with($value)->willReturnSelf();
+        $this->typecast->expects($this->once())->method('to')->with($expected);
         
-        $this->assertSame(10, TypeCast::value('10')->toMultiple(['int', 'null']));
+        $this->handler->forType($types)->cast($value);
+    }
+    
+    public function castNopArrayProvider()
+    {
+        return [
+            [['foo', 'bar'], 'string[]|integer[]'],
+            [[10, 20], 'string[]|integer[]'],
+            [[10, 20], 'integer|integer[]'],
+            [[10, 20], 'stdClass|integer[]'],
+            [[10, 20], 'Foo|integer[]'],
+            [[10, 20], 'DateTime[]|integer[]']
+        ];
     }
     
     /**
-     * Test type casting presenting multiple types with no matching type
-     * 
-     * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast string "foo" to integer|boolean
+     * @dataProvider castNopArrayProvider
      */
-    public function testToMultipleNoMatch()
+    public function testCastNopArray($value, $type)
     {
-        return $this->markTestSkipped();
+        $this->typecast->expects($this->never())->method('forValue');
+        $this->typecast->expects($this->never())->method('to');
         
-        TypeCast::value('foo')->toMultiple(['int', 'boolean']);
+        $actual = $this->handler->forType($type)->cast($value);
+        $this->assertSame($value, $actual);
     }
     
-    /**
-     * Get type casting presenting multiple types
-     */
-    public function testToMultipleArray()
+    public function testCastArray()
     {
-        return $this->markTestSkipped();
-        
-        $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['int', 'bool[]']));
-        $this->assertSame([true, true, false], TypeCast::value([1, 'on', false])->toMultiple(['stdClass[]', 'bool[]']));
-    }
-    
-    /**
-     * Test type casting presenting multiple types
-     */
-    public function testToMultipleTypedArray()
-    {
-        return $this->markTestSkipped();
-        
-        $this->assertSame([1, true, false], TypeCast::value([1, true, false])->toMultiple(['int[]', 'bool[]']));
-    }
-
-    
-    /**
-     * Test type casting presenting multiple types casting a type to an array
-     */
-    public function testToMultipleTypeToTypedArray()
-    {
-        return $this->markTestSkipped();
-        
-        $this->assertSame([10], TypeCast::value(10)->toMultiple(['string[]', 'int[]']));
-        $this->assertSame(['foo'], TypeCast::value('foo')->toMultiple(['string[]', 'int[]']));
-    }
-    
-    /**
-     * Test type casting presenting multiple types which are type|type[]
-     */
-    public function testToMultipleTypeOrArray()
-    {
-        return $this->markTestSkipped();
-        
-        $this->assertSame(10, TypeCast::value('10')->toMultiple(['int', 'int[]']));
-        $this->assertSame([10, 20, 30], TypeCast::value(['10', 20, '30'])->toMultiple(['int', 'int[]']));
-    }
-
-    /**
-     * Test type casting presenting multiple types by elminiting typed arrays
-     */
-    public function testToMultipleEliminateArray()
-    {
-        return $this->markTestSkipped();
-        
-        $array = ['foo', false, 'bar', 10];
-        $this->assertSame($array, TypeCast::value($array)->toMultiple(['array', 'stdClass[]', 'int[]']));
-    }
-
-    /**
-     * Test type casting presenting multiple array types which are type|type[] with no matching type
-     * 
-     * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast string "rock" to a integer
-     */
-    public function testToMultipleTypeOrArrayNoMatch()
-    {
-        return $this->markTestSkipped();
-        
-        TypeCast::value('rock')->toMultiple(['int', 'int[]']);
-    }
-    
-    /**
-     * Test type casting presenting multiple array types which are type|type[] with no matching type
-     * 
-     * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast a boolean to string|integer|string[]|integer[]
-     */
-    public function testToMultipleTypeOrArrayNoMatch2()
-    {
-        return $this->markTestSkipped();
-        
-        TypeCast::value(true)->toMultiple(['string', 'int', 'string[]', 'int[]']);
-    }
-    
-    /**
-     * Test type casting presenting multiple array types with no matching type
-     * 
-     * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast string "rock" to integer[]|boolean[]
-     */
-    public function testToMultipleTypedArrayNotArray()
-    {
-        return $this->markTestSkipped();
-        
-        TypeCast::value('rock')->toMultiple(['integer[]', 'boolean[]']);
-    }
-    
-    /**
-     * Test type casting presenting multiple array types with no matching type
-     * 
-     * @expectedException         PHPUnit_Framework_Error_Notice
-     * @expectedExceptionMessage  Unable to cast string "rock" to integer|boolean
-     */
-    public function testToMultipleTypedArrayNoMatch()
-    {
-        return $this->markTestSkipped();
-        
-        TypeCast::value([1, 'on', false, 'rock'])->toMultiple(['integer[]', 'boolean[]']);
     }
 }
