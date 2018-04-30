@@ -104,7 +104,7 @@ class ObjectHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast string "foo" to object
      */
     public function testToObjectWithScalar()
@@ -113,7 +113,7 @@ class ObjectHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast gd resource to object
      */
     public function testToObjectWithResource()
@@ -223,7 +223,7 @@ class ObjectHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast integer to Jasny\TypeCast\Test\NonExisting object: Class doesn't exist
      */
     public function testCastToClassNonExisting()

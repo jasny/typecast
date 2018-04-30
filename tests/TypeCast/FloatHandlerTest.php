@@ -7,9 +7,9 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\FloatHandler;
 
 /**
- * @covers Jasny\TypeCast\FloatHandler
- * @covers Jasny\TypeCast\NumberHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\FloatHandler
+ * @covers \Jasny\TypeCast\NumberHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class FloatHandlerTest extends TestCase
 {
@@ -75,7 +75,7 @@ class FloatHandlerTest extends TestCase
     
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast string "foo" to float
      */
     public function testCastWithRandomString()
@@ -84,7 +84,7 @@ class FloatHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast array to float
      */
     public function testCastWithArray()
@@ -95,7 +95,7 @@ class FloatHandlerTest extends TestCase
     /**
      * Test type casting an array to float
      *
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast stdClass object to float
      */
     public function testCastWithObject()
@@ -106,7 +106,7 @@ class FloatHandlerTest extends TestCase
     /**
      * Test type casting an resource to float
      *
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast gd resource to float
      */
     public function testCastWithResource()

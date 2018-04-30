@@ -7,8 +7,8 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\ArrayHandler;
 
 /**
- * @covers Jasny\TypeCast\ArrayHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\ArrayHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class ArrayHandlerTest extends TestCase
 {

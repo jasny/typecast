@@ -7,8 +7,8 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\BooleanHandler;
 
 /**
- * @covers Jasny\TypeCast\BooleanHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\BooleanHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class BooleanHandlerTest extends TestCase
 {
@@ -27,6 +27,7 @@ class BooleanHandlerTest extends TestCase
     public function testUsingTypecast()
     {
         $typecast = $this->createMock(TypeCastInterface::class);
+        $typecast->expects($this->once())->method('getName')->willReturn(null);
         
         $ret = $this->handler->usingTypecast($typecast);
         $this->assertSame($this->handler, $ret);
@@ -78,7 +79,7 @@ class BooleanHandlerTest extends TestCase
     
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast string "foo" to boolean
      */
     public function testCastWithRandomString()
@@ -87,16 +88,20 @@ class BooleanHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast QUX from string "foo" to boolean
      */
     public function testCastUsingName()
     {
-        $this->handler->withName('QUX')->cast('foo');
+        $typecast = $this->createMock(TypeCastInterface::class);
+        $typecast->expects($this->once())->method('getName')->willReturn('QUX');
+
+        $handler = $this->handler->usingTypecast($typecast);
+        $handler->cast('foo');
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast array to boolean
      */
     public function testCastWithArray()
@@ -105,7 +110,7 @@ class BooleanHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast stdClass object to boolean
      */
     public function testCastWithObject()
@@ -116,7 +121,7 @@ class BooleanHandlerTest extends TestCase
     /**
      * Test type casting an resource to boolean
      *
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast gd resource to boolean
      */
     public function testCastWithResource()
@@ -124,7 +129,7 @@ class BooleanHandlerTest extends TestCase
         if (!function_exists('imagecreate')) {
             $this->markTestSkipped("GD not available. Using gd resource for test.");
         }
-        
+
         $resource = imagecreate(10, 10);
         $this->handler->cast($resource);
     }

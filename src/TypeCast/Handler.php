@@ -3,6 +3,7 @@
 namespace Jasny\TypeCast;
 
 use Jasny\TypeCastInterface;
+use LogicException;
 
 /**
  * Base class for type casting handler
@@ -20,25 +21,6 @@ abstract class Handler implements HandlerInterface
      * @var string
      */
     protected $name;
-    
-    /**
-     * Set the display name.
-     * This is used in notices.
-     * 
-     * @param string|null $name
-     * @return static
-     */
-    public function withName($name): HandlerInterface
-    {
-        if ($this->name === $name) {
-            return $this;
-        }
-        
-        $handler = clone $this;
-        $handler->name = $name;
-        
-        return $handler;
-    }
     
     /**
      * Set the warning level or throwable when variable can't be cased to type.
@@ -59,20 +41,29 @@ abstract class Handler implements HandlerInterface
      */
     public function usingTypecast(TypeCastInterface $typecast): HandlerInterface
     {
-        return $this;
+        $name = $typecast->getName();
+
+        if ($this->name === $name) {
+            return $this;
+        }
+
+        $handler = clone $this;
+        $handler->name = $name;
+
+        return $handler;
     }
     
     /**
      * Use handler to cast to type.
      * 
      * @param string $type
-     * @return HandlerInterface
-     * @throws \LogicException if handler can't be used
+     * @return static
+     * @throws LogicException if handler can't be used
      */
     public function forType(string $type): HandlerInterface
     {
         if ($type !== $this->getType()) {
-            throw new \LogicException("Unable to use " . get_class($this) . " to cast to $type");
+            throw new LogicException("Unable to use " . get_class($this) . " to cast to $type");
         }
         
         return $this;
@@ -86,7 +77,7 @@ abstract class Handler implements HandlerInterface
     abstract protected function getType(): string;
 
     /**
-     * Get a descript of the type of the value
+     * Get a description of the type of the value
      *
      * @param mixed $value
      * @return string

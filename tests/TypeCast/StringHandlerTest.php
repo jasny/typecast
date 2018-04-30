@@ -82,7 +82,7 @@ class StringHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast array to string
      */
     public function testToStringWithArray()
@@ -91,7 +91,7 @@ class StringHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast stdClass object to string
      */
     public function testToStringWithObject()
@@ -100,7 +100,7 @@ class StringHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast gd resource to string
      */
     public function testToStringWithResource()

@@ -8,13 +8,6 @@ namespace Jasny;
 interface TypeCastInterface
 {
     /**
-     * Class constructor
-     *
-     * @param mixed $value
-     */
-    public function __construct($value = null);
-    
-    /**
      * Create a clone of this typecast object for a different value.
      * 
      * @param mixed $value
@@ -30,7 +23,14 @@ interface TypeCastInterface
      * @return $this
      */
     public function setName(string $name);
-    
+
+    /**
+     * Get the display name.
+     *
+     * @return string|null
+     */
+    public function getName(): ?string;
+
     /**
      * Add a custom alias
      * 

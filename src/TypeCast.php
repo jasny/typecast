@@ -2,20 +2,20 @@
 
 namespace Jasny;
 
-use Jasny\TypeCast;
 use Jasny\TypeCastInterface;
 use Jasny\TypeCast\HandlerInterface;
+use Jasny\TypeCast\HandlerRepositoryInterface;
+use Traversable;
+use OutOfBoundsException;
+
+// Default handlers
+use Jasny\TypeCast\{ArrayHandler, BooleanHandler, FloatHandler, IntegerHandler, MixedHandler, ObjectHandler,
+    ResourceHandler, StringHandler, MultipleHandler};
 
 /**
  * Class for type casting
- *
- *     $string = TypeCast::value($myValue)->to('string');
- *     $foo = TypeCast::value($data)->to(Foo:class);
- * 
- * When casting to an object of a class, the `__set_state()` method is used if available and the value is an array or a
- * stdClass object.
  */
-class TypeCast implements TypeCastInterface
+class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
 {
     /**
      * @var mixed
@@ -85,22 +85,25 @@ class TypeCast implements TypeCastInterface
     /**
      * Get the handler for a type
      * 
-     * @param string $key
      * @param string $type
      * @return HandlerInterface
-     * @throws \OutOfBoundsException
+     * @throws OutOfBoundsException
      */
-    public function getHandler(string $key, string $type = null): HandlerInterface
+    public function getHandler(string $type): HandlerInterface
     {
-        if (!isset($type)) {
-            $type = $key;
+        if (strstr($type, '|')) {
+            $key = 'multiple';
+        } elseif (isset($this->handlers[$type])) {
+            $key = $type;
+        } else {
+            $key = substr($type, -2) === '[]' || is_a($type, Traversable::class) ? 'array' : 'object';
         }
         
         if (!isset($this->handlers[$key])) {
-            throw new \OutOfBoundsException("Unable to find handler to cast to '$type'");
+            throw new OutOfBoundsException("Unable to find handler to cast to '$type'");
         }
         
-        return $this->handlers[$key]->forType($type)->usingTypecast($this)->withName($this->name);
+        return $this->handlers[$key]->forType($type)->usingTypecast($this);
     }
     
     /**
@@ -116,7 +119,18 @@ class TypeCast implements TypeCastInterface
         
         return $this;
     }
-    
+
+    /**
+     * Get the display name.
+     *
+     * @return string|null
+     */
+    public function getName(): ?string
+    {
+        return $this->name;
+    }
+
+
     /**
      * Add a custom alias
      * 
@@ -161,16 +175,8 @@ class TypeCast implements TypeCastInterface
     public function to(string $type)
     {
         $normalType = $this->normalizeType($type);
-        
-        if (strstr($type, '|')) {
-            $handler = $this->getHandler('multiple', $normalType);
-        } elseif (isset($this->handlers[$normalType])) {
-            $handler = $this->getHandler($normalType);
-        } else {
-            $handler = $this->getHandler(substr($normalType, -2) === '[]' ? 'array' : 'object', $normalType);
-        }
-        
-        return $handler->cast($this->value);
+
+        return $this->getHandler($normalType)->cast($this->value);
     }
     
     
@@ -182,15 +188,15 @@ class TypeCast implements TypeCastInterface
     public static function getDefaultHandlers(): array
     {
         return [
-            'array' => new TypeCast\ArrayHandler(),
-            'boolean' => new TypeCast\BooleanHandler(),
-            'float' => new TypeCast\FloatHandler(),
-            'integer' => new TypeCast\IntegerHandler(),
-            'mixed' => new TypeCast\MixedHandler(),
-            'object' => new TypeCast\ObjectHandler(),
-            'resource' => new TypeCast\ResourceHandler(),
-            'string' => new TypeCast\StringHandler(),
-            'multiple' => new TypeCast\MultipleHandler()
+            'array' => new ArrayHandler(),
+            'boolean' => new BooleanHandler(),
+            'float' => new FloatHandler(),
+            'integer' => new IntegerHandler(),
+            'mixed' => new MixedHandler(),
+            'object' => new ObjectHandler(),
+            'resource' => new ResourceHandler(),
+            'string' => new StringHandler(),
+            'multiple' => new MultipleHandler()
         ];
     }
 }

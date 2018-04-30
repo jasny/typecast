@@ -10,15 +10,6 @@ use Jasny\TypeCastInterface;
 interface HandlerInterface
 {
     /**
-     * Set the display name.
-     * This is used in notices.
-     * 
-     * @param string $name
-     * @return static
-     */
-    public function withName($name): self;
-
-    /**
      * Set the warning level or throwable when variable can't be cased to type.
      * 
      * @param int|string $level  E_* or Throwable class name

@@ -7,9 +7,9 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\IntegerHandler;
 
 /**
- * @covers Jasny\TypeCast\IntegerHandler
- * @covers Jasny\TypeCast\NumberHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\IntegerHandler
+ * @covers \Jasny\TypeCast\NumberHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class IntegerHandlerTest extends TestCase
 {
@@ -74,7 +74,7 @@ class IntegerHandlerTest extends TestCase
     
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast string "foo" to integer
      */
     public function testCastWithRandomString()
@@ -83,7 +83,7 @@ class IntegerHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast array to integer
      */
     public function testCastWithArray()
@@ -92,7 +92,7 @@ class IntegerHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast stdClass object to integer
      */
     public function testCastWithObject()
@@ -101,7 +101,7 @@ class IntegerHandlerTest extends TestCase
     }
     
     /**
-     * @expectedException         PHPUnit_Framework_Error_Notice
+     * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast gd resource to integer
      */
     public function testCastWithResource()

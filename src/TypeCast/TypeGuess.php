@@ -3,9 +3,13 @@
 namespace Jasny\TypeCast;
 
 use Jasny\TypeCast\BooleanHandler;
+use stdClass;
+use DateTime;
+use Traversable;
+use ReflectionClass;
 
 /**
- * Guess a types
+ * Guess a type.
  */
 class TypeGuess
 {
@@ -14,15 +18,16 @@ class TypeGuess
      * @var array
      */
     public $types;
-    
+
+
     /**
      * Class constructor
      * 
-     * @param array $types  Possible types
+     * @param string[] $types  Possible types
      */
     public function __construct(array $types = [])
     {
-        $this->types = $types;
+        $this->types = array_values($types);
     }
     
     /**
@@ -37,34 +42,83 @@ class TypeGuess
             return $this;
         }
         
-        $typeguess = clone $this;
-        $typeguess->types = $types;
+        $typeGuess = clone $this;
+        $typeGuess->types = array_values($types);
         
-        return $typeguess;
+        return $typeGuess;
     }
-    
+
     /**
-     * Guess a type for the value
-     * 
-     * @param type $value
+     * Get only the subtypes.
+     *
      * @return array
      */
-    public function guessFor($value): array
+    protected function getSubTypes()
     {
-        $possibleTypes = $this->getPossibleTypes($value);
-        $guess = $this->forTypes($possibleTypes)->reduceTypes($value);
-        
-        return $guess->exactTypes($value) ?: $types;
+        $subTypes = [];
+
+        foreach ($this->types as $type) {
+            if (substr($type,-2) === '[]') {
+                $subTypes[] = substr($type, 0, -2);
+            }
+        }
+
+        return $subTypes;
     }
-    
+
+
+    /**
+     * Guess the handler for the value.
+     * 
+     * @param mixed $value
+     * @return string|null
+     */
+    public function guessFor($value): ?string
+    {
+        return $this
+            ->removeNull()
+            ->onlyPossible($value)
+            ->reduceScalarTypes($value)
+            ->reduceArrayTypes($value)
+            ->reduceClasses()
+            ->conclude();
+    }
+
+
+    /**
+     * Remove the null type
+     *
+     * @return static
+     */
+    protected function removeNull(): self
+    {
+        return $this->forTypes(array_diff($this->types, ['null']));
+    }
+
+    /**
+     * Return handler with only the possible types for the value.
+     *
+     * @param mixed $value
+     * @return static
+     */
+    protected function onlyPossible($value): self
+    {
+        return count($this->types) < 2 ? $this : $this->forTypes($this->getPossibleTypes($value));
+    }
+
     /**
      * Get possible types based on the value
      * 
-     * @param type $value
+     * @param mixed $value
+     * @return array
      */
     protected function getPossibleTypes($value): array
     {
-        $type = $this->isAssoc($value) ? 'assoc' : gettype($value);
+        if (empty($this->types)) {
+            return [];
+        }
+
+        $type = $this->isAssoc($value) ? 'assoc' : ($value instanceof Traversable ? 'array' : gettype($value));
         
         switch ($type) {
             case 'boolean':
@@ -97,42 +151,76 @@ class TypeGuess
         });
         
         $not = [
-            'string' => false,
+            'string' => is_bool($value),
             'integer' => is_string($value) && !is_numeric($value),
-            'float' => is_string($value) && !is_numeric($value),
+            'float' => is_bool($value) || (is_string($value) && !is_numeric($value)),
             'boolean' => is_string($value) && !in_array($value, BooleanHandler::getBooleanStrings()),
             'array' => true,
             'object' => true,
-            'resouce' => true,
+            'resource' => true,
             'stdClass' => true,
             'DateTime' => is_bool($value) || is_float($value) || (is_string($value) && strtotime($value) === false)
         ];
 
         return array_udiff($singleTypes, array_keys(array_filter($not)), 'strcasecmp');
     }
-    
+
     /**
      * Get possible types based on a (numeric) array value
-     * 
-     * @param array $value
+     *
+     * @param iterable $value
      * @return array
      */
-    protected function getPossibleArrayTypes(): array
+    protected function getPossibleArrayTypes(iterable $value): array
     {
-        return array_filter($this->types, function($type) {
-            return in_array(strtolower($type), ['array', 'object', 'stdclass'])
-                || substr($type, -2) === '[]'
-                || (class_exists($type) && is_a(\Traversable::class, $type, true));
+        $noSubTypes = in_array('array', $this->types);
+
+        $types = array_filter($this->types, function($type) use($noSubTypes) {
+            return $type === 'array'
+                || (!$noSubTypes && substr($type, -2) === '[]')
+                || (class_exists($type) && is_a(Traversable::class, $type, true));
         });
+
+        return $noSubTypes ? $types : $this->removeImpossibleArraySubtypes($types, $value);
+    }
+
+    /**
+     * Remove subtypes that aren't available for each item.
+     *
+     * @param array    $types
+     * @param iterable $value
+     * @return array
+     */
+    protected function removeImpossibleArraySubtypes(array $types, iterable $value): array
+    {
+        $subTypes = $this->getSubTypes();
+
+        if (count($subTypes) === 0) {
+            return $types;
+        }
+
+        $subHandler = $this->forTypes($subTypes);
+
+        foreach ($value as $item) {
+            $subHandler = $subHandler->forTypes($subHandler->getPossibleTypes($item));
+        }
+
+        $possibleSubTypes = $subHandler->types;
+
+        return count($possibleSubTypes) === count($subTypes)
+            ? $types
+            : array_filter($types, function($type) use ($possibleSubTypes) {
+                return substr($type, -2) !== '[]' || in_array(substr($type, 0, -2), $possibleSubTypes);
+            });
     }
     
     /**
      * Get possible types based on associated array or stdClass object.
-     * 
-     * @param array $value
+     *
+     * @param mixed $value
      * @return array
      */
-    protected function getPossibleAssocTypes(): array
+    protected function getPossibleAssocTypes($value): array
     {
         $exclude = ['string', 'integer', 'float', 'boolean', 'resource', 'DateTime'];
         
@@ -150,70 +238,168 @@ class TypeGuess
         return array_filter($this->types, function($type) use ($value) {
             return ((class_exists($type) || interface_exists($type)) && is_a($value, $type))
                 || ($type === 'string' && method_exists($value, '__toString'))
-                || (in_array($type, ['object', 'array']) && $type instanceof \stdClass);
+                || (in_array($type, ['object', 'array']) && $type instanceof stdClass);
         });
     }
-    
+
+
     /**
-     * Reduce types that superseed others
-     * 
+     * Remove scalar types that are unlikely to be preferred.
+     *
      * @param mixed $value
      * @return static
      */
-    protected function reduceTypes($value): self
+    protected function reduceScalarTypes($value): self
     {
-        $types = $this->types;
-        
-        if (in_array('string', $types) && is_string($value) && strtotime($value) !== false) {
-            $types = array_diff($types, ['string']);
+        if (!is_scalar($value) || count($this->types) === 1) {
+            return $this;
         }
-        
-        if ((in_array('integer', $types) || in_array('float', $types)) && is_numeric($value)) {
-            $types = array_diff($types, ['boolean', 'string']);
+
+        $preferredTypes = ['string', 'integer', 'float', 'boolean', DateTime::class];
+        $types = array_uintersect($this->types, $preferredTypes, 'strcasecmp');
+
+        if (empty($types)) {
+            return $this;
         }
-        
-        if (in_array('integer', $types) && in_array('float', $types) && is_string($value) && is_numeric($value)) {
-            $types = array_diff($types, [strstr($value, '.') ? 'integer' : 'float']);
+
+        $remove = [];
+
+        if (in_array(DateTime::class, $types) || in_array('boolean', $types)) {
+            $remove[] = 'string';
         }
-        
-        return $this->forTypes($types)->removeSuperClasses();
+
+        if (in_array('integer', $types)) {
+            $remove[] = DateTime::class;
+        }
+
+        if (in_array('boolean', $types) && is_bool($value)) {
+            $remove[] = 'integer';
+            $remove[] = 'float';
+        } elseif (in_array('integer', $types) || in_array('float', $types)) {
+            $remove[] = 'boolean';
+            $remove[] = 'string';
+        }
+
+        if (in_array('integer', $types) && in_array('float', $types)) {
+            $remove[] = is_float($value) || (is_string($value) && strstr($value, '.')) ? 'integer' : 'float';
+        }
+
+        return $this->forTypes(array_udiff($types, $remove, 'strcasecmp'));
     }
-    
+
     /**
-     * Reduce classes and interfaces that superseed others
-     * 
-     * @param array $types
+     * Remove scalar types that are unlikely to be preferred.
+     *
+     * @param mixed $value
      * @return static
      */
-    protected function removeSuperClasses(): self
+    protected function reduceArrayTypes($value): self
     {
+        if (!is_iterable($value) || count($this->types) === 1 || in_array('array', $this->types)) {
+            return $this;
+        }
+
+        $types = $this->types;
+        $remove = [];
+
+        if (in_array('DateTime[]', $types) || in_array('boolean[]', $types)) {
+            $remove[] = 'string[]';
+        }
+
+        if (in_array('integer[]', $types)) {
+            $remove[] = 'DateTime[]';
+        }
+
+        if (in_array('integer[]', $types) || in_array('float[]', $types)) {
+            $remove[] = 'boolean[]';
+            $remove[] = 'string[]';
+        }
+
+        if (in_array('integer[]', $types) && in_array('float[]', $types)) {
+            $float = false;
+
+            foreach ($value as $item) {
+                $float = $float || is_float($value) || (is_string($value) && strstr($value, '.'));
+            }
+
+            $remove[] = $float ? 'integer' : 'float';
+        }
+
+        return $this->forTypes(array_udiff($types, $remove, 'strcasecmp'));
+    }
+
+    /**
+     * Pick concrete classes over abstract classes and interfaces, plus remove classes that are super seeded.
+     * 
+     * @return static
+     */
+    protected function reduceClasses(): self
+    {
+        if (count($this->types) === 1) {
+            return $this;
+        }
+
+        $remove = [];
+
         $classes = array_filter($this->types, function($type) {
             return class_exists($type) || interface_exists($type);
         });
-        
-        $types = array_filter($this->types, function($type) use ($classes) {
-            return !in_array($type, $classes) || array_reduce($classes, function($remove, $class) use ($type) {
-                return $remove || is_a($type, $class, true);
-            }, false);
+
+        if (count($classes) < 2) {
+            return $this;
+        }
+
+        $reflections = array_map(function($class) {
+            return new ReflectionClass($class);
         });
-        
-        return $this->forTypes($types);
+
+        foreach ($reflections as $class) {
+            foreach ($reflections as $compare) {
+                if ($class->isSubclassOf($compare)) {
+                    $classIsAbstract = $class->isAbstract() || $class->isInterface();
+                    $compareIsAbstract = $compare->isAbstract() || $compare->isInterface();
+
+                    $remove[] = $compareIsAbstract && !$classIsAbstract ? $compare->name : $class->name;
+                    break;
+                }
+            }
+        }
+
+        return $this->forTypes(array_diff($this->types, $remove));
     }
-    
-    protected function exactTypes(): array
+
+    /**
+     * Get the type if there is only one option left.
+     *
+     * @return string|null
+     */
+    protected function conclude(): ?string
     {
-        return $this->types;
+        if (count($this->types) < 2) {
+            return reset($this->types) ?: null;
+        }
+
+        if (
+            count($this->types) === 2 &&
+            (is_a($this->types[0], Traversable::class, true) xor is_a($this->types[1], Traversable::class, true))
+        ) {
+            $types = is_a($this->types[0], Traversable::class, true) ? $this->types : array_reverse($this->types);
+            return sprintf('%s|%s[]', ...$types);
+        }
+
+        return null;
     }
-    
+
+
     /**
      * Check if value is an associated array or stdClass object
      * 
-     * @param type $value
+     * @param mixed $value
      * @return bool
      */
     protected function isAssoc($value): bool
     {
         return (is_array($value) && count(array_filter(array_keys($value), 'is_string')) > 0)
-            || (is_object($value) && get_class($value) === 'stdClass');
+            || (is_object($value) && get_class($value) === stdClass::class);
     }
 }

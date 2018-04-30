@@ -60,7 +60,7 @@ class ResourceHandlerTest extends TestCase
     
     /**
      * @dataProvider castProvider
-     * @expectedException PHPUnit_Framework_Error_Notice
+     * @expectedException \PHPUnit\Framework\Error\Notice
      */
     public function testCast($value, $type)
     {

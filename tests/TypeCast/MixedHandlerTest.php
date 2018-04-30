@@ -7,8 +7,8 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\MixedHandler;
 
 /**
- * @covers Jasny\TypeCast\MixedHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\MixedHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class MixedHandlerTest extends TestCase
 {

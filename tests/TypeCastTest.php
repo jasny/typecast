@@ -2,13 +2,14 @@
 
 namespace Jasny;
 
+use PHPUnit\Framework\TestCase;
 use Jasny\TypeCast;
 use Jasny\TypeCast\HandlerInterface;
 
 /**
- * @covers Jasny\TypeCast
+ * @covers \Jasny\TypeCast
  */
-class TypeCastTest extends \PHPUnit_Framework_TestCase
+class TypeCastTest extends TestCase
 {
     /**
      * Test factory method
@@ -85,9 +86,8 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
      */
     public function testGetHandlerUnknown()
     {
-        $typecast = new TypeCast();
-        
-        $typecast->getHandler('farm', 'cow');
+        $typecast = new TypeCast(null, []);
+        $typecast->getHandler('cow');
     }
     
     public function testTo()
@@ -95,12 +95,10 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
         $handler = $this->createMock(HandlerInterface::class);
         
         $typecast = new TypeCast('ten', ['integer' => $handler]);
-        $typecast->setName('QUX');
 
         $handler->expects($this->once())->method('forType')->with('integer')->willReturnSelf();
         $handler->expects($this->once())->method('usingTypecast')->with($this->identicalTo($typecast))
             ->willReturnSelf();
-        $handler->expects($this->once())->method('withName')->with('QUX')->willReturnSelf();
         $handler->expects($this->once())->method('cast')->with('ten')->willReturn(10);
         
         $ret = $typecast->to('integer');
@@ -131,7 +129,6 @@ class TypeCastTest extends \PHPUnit_Framework_TestCase
 
         $handler->expects($this->once())->method('forType')->with($normalType)->willReturnSelf();
         $handler->expects($this->once())->method('usingTypecast')->willReturnSelf();
-        $handler->expects($this->once())->method('withName')->willReturnSelf();
         $handler->expects($this->once())->method('cast');
         
         $typecast->to($type);

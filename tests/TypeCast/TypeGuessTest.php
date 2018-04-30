@@ -3,67 +3,69 @@
 namespace Jasny\TypeCast;
 
 use PHPUnit\Framework\TestCase;
-use Jasny\TypeCast\TypeGuess;
+use Jasny\TestHelper;
+use Jasny\TypeCast\typeGuess;
 
 /**
- * @covers Jasny\TypeCast\TypeGuess
+ * @covers \Jasny\TypeCast\typeGuess
  */
-class TypeGuessTest extends TestCase
+class typeGuessTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
 
     /**
-     * @var TypeGuess
+     * @var typeGuess
      */
-    protected $typeguess;
+    protected $typeGuess;
     
     public function setUp()
     {
-        $this->typeguess = new TypeGuess();
+        $this->typeGuess = new typeGuess();
     }
     
     public function testForTypes()
     {
-        $new = $this->typeguess->forTypes(['string', 'integer[]']);
+        $new = $this->typeGuess->forTypes(['string', 'integer[]']);
         
-        $this->assertInstanceOf(TypeGuess::class, $new);
-        $this->assertNotSame($this->typeguess, $new);
+        $this->assertInstanceOf(typeGuess::class, $new);
+        $this->assertNotSame($this->typeGuess, $new);
         $this->assertAttributeEquals(['string', 'integer[]'], 'types', $new);
         
-        $this->assertAttributeSame([], 'types', $this->typeguess);
+        $this->assertAttributeSame([], 'types', $this->typeGuess);
         
         return $new;
     }
     
     /**
-     * @depends testForType
+     * @depends testForTypes
      */
-    public function testForTypeSameSubtype($typeguess)
+    public function testForTypeSameSubtype(typeGuess $typeGuess)
     {
-        $ret = $typeguess->forType(['integer[]', 'string']);
+        $ret = $typeGuess->forTypes(['integer[]', 'string']);
         
-        $this->assertSame($typeguess, $ret);
+        $this->assertSame($typeGuess, $ret);
         $this->assertAttributeEquals(['string', 'integer[]'], 'types', $ret);
     }
     
     public function scalarProvider()
     {
         return [
-            [1, ['integer', 'boolean'], ['integer']],
-            [true, ['integer', 'boolean'], ['boolean']],
-            ['on', ['string', 'boolean'], ['boolean']],
-            ['foo', ['string', 'integer', 'float'], ['string']],
-            ['10.0', ['integer', 'boolean'], ['integer']],
-            ['1', ['integer', 'boolean'], ['integer']],
-            ['on', ['integer', 'boolean'], ['boolean']],
-            ['10.0', ['integer', 'float'], ['float']],
-            ['10.0', ['string', 'integer', 'float'], ['float']],
-            ['10', ['string', 'integer', 'float'], ['integer']],
-            ['10', ['integer', 'null'], ['integer']],
-            ['10', ['array', 'null'], ['array']],
-            ['10', ['integer', 'array', 'stdClass'], ['integer']],
-            ['2018-01-03', ['integer', 'DateTime', 'string'], ['DateTime']],
-            ['hello', ['integer', 'Foo', 'Foo[]'], ['Foo']]
+            [1, ['integer', 'boolean'], 'integer'],
+            [true, ['integer', 'boolean'], 'boolean'],
+            ['on', ['string', 'boolean'], 'boolean'],
+            ['foo', ['string', 'integer', 'float'], 'string'],
+            ['10.0', ['integer', 'boolean'], 'integer'],
+            ['1', ['integer', 'boolean'], 'integer'],
+            ['on', ['integer', 'boolean'], 'boolean'],
+            ['10.0', ['integer', 'float'], 'float'],
+            ['10.0', ['string', 'integer', 'float'], 'float'],
+            ['10', ['string', 'integer', 'float'], 'integer'],
+            ['10', ['integer', 'null'], 'integer'],
+            ['10', ['array', 'null'], 'array'],
+            ['10', ['integer', 'array', 'stdClass'], 'integer'],
+            ['2018-01-03', ['integer', 'DateTime', 'string'], 'DateTime'],
+            ['hello', ['integer', 'string', 'Foo', 'Foo[]'], 'string'],
+            ['hello', ['integer', 'Foo', 'Foo[]'], 'Foo']
         ];
     }
     
@@ -72,36 +74,35 @@ class TypeGuessTest extends TestCase
      */
     public function testGuessForScalar($value, $types, $expected)
     {
-        $type = $this->typeguess->forTypes($types)->guessFor($value);
+        $type = $this->typeGuess->forTypes($types)->guessFor($value);
         
-        $this->assertEquals($expected, $type);
+        $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
     }
-    
-    public function castNopArrayProvider()
+
+    public function arrayProvider()
     {
         return [
-            [['foo', 'bar'], 'string[]|integer[]'],
-            [[10, 20], 'string[]|integer[]'],
-            [[10, 20], 'integer|integer[]'],
-            [[10, 20], 'stdClass|integer[]'],
-            [[10, 20], 'Foo|integer[]'],
-            [[10, 20], 'DateTime[]|integer[]']
+            [['foo', 'bar'], ['string[]', 'integer[]'], 'string[]'],
+            [[10, 20], ['string[]', 'integer[]'], 'integer[]'],
+            [['10.0', 20], ['string[]', 'integer[]'], 'integer[]'],
+            [[10, 20], ['integer', 'integer[]'], 'integer[]'],
+            [[10, 20], ['stdClass', 'integer[]'], 'integer[]'],
+            [[10, 20], ['Foo', 'integer[]'], 'integer[]'],
+            [[10, 20], ['DateTime[]', 'integer[]'], 'integer[]'],
+            [[1525027695, 1525027635], ['DateTime[]', 'integer[]'], 'integer[]'],
+            [['2018-01-03', 1525027635], ['DateTime[]', 'integer[]'], 'DateTime[]'],
+            [['2018-01-03', '2018-01-04'], ['DateTime[]', 'string[]'], 'DateTime[]'],
+            [['2018-01-03', 'hello'], ['DateTime[]', 'string[]'], 'string[]']
         ];
     }
     
     /**
-     * @dataProvider castNopArrayProvider
+     * @dataProvider arrayProvider
      */
-    public function testCastNopArray($value, $type)
+    public function testGuessForArray($value, $types, $expected)
     {
-        $this->typecast->expects($this->never())->method('forValue');
-        $this->typecast->expects($this->never())->method('to');
-        
-        $actual = $this->typeguess->forType($type)->cast($value);
-        $this->assertSame($value, $actual);
-    }
-    
-    public function testCastArray()
-    {
+        $type = $this->typeGuess->forTypes($types)->guessFor($value);
+
+        $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
     }
 }
