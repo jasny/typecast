@@ -9,8 +9,18 @@ use Traversable;
 use OutOfBoundsException;
 
 // Default handlers
-use Jasny\TypeCast\{ArrayHandler, BooleanHandler, FloatHandler, IntegerHandler, MixedHandler, ObjectHandler,
-    ResourceHandler, StringHandler, MultipleHandler};
+use Jasny\TypeCast\{
+    ArrayHandler,
+    BooleanHandler,
+    FloatHandler,
+    IntegerHandler,
+    MixedHandler,
+    NumberHandler,
+    ObjectHandler,
+    ResourceHandler,
+    StringHandler,
+    MultipleHandler
+};
 
 /**
  * Class for type casting
@@ -41,6 +51,9 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
     protected $aliases = [
         'bool' => 'boolean',
         'int' => 'integer',
+        'double' => 'float',
+        'real' => 'float',
+        'number' => 'integer|float',
         'mixed[]' => 'array'
     ];
     
@@ -91,12 +104,16 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
      */
     public function getHandler(string $type): HandlerInterface
     {
-        if (strstr($type, '|')) {
-            $key = 'multiple';
-        } elseif (isset($this->handlers[$type])) {
+        if (isset($this->handlers[$type])) {
             $key = $type;
+        } elseif ($type === 'integer|float' || $type === 'float|integer') {
+            $key = 'number';
+        } elseif (strstr($type, '|')) {
+            $key = 'multiple';
+        } elseif (substr($type, -2) === '[]' || is_a($type, Traversable::class, true)) {
+            $key = 'array';
         } else {
-            $key = substr($type, -2) === '[]' || is_a($type, Traversable::class) ? 'array' : 'object';
+            $key = 'object';
         }
         
         if (!isset($this->handlers[$key])) {
@@ -187,11 +204,14 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
      */
     public static function getDefaultHandlers(): array
     {
+        $numberHandler = new NumberHandler();
+
         return [
             'array' => new ArrayHandler(),
             'boolean' => new BooleanHandler(),
-            'float' => new FloatHandler(),
-            'integer' => new IntegerHandler(),
+            'float' => $numberHandler,
+            'integer' => $numberHandler,
+            'number' => $numberHandler,
             'mixed' => new MixedHandler(),
             'object' => new ObjectHandler(),
             'resource' => new ResourceHandler(),

@@ -7,8 +7,8 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\ResourceHandler;
 
 /**
- * @covers Jasny\TypeCast\ResourceHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\ResourceHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class ResourceHandlerTest extends TestCase
 {

@@ -3,24 +3,23 @@
 namespace Jasny\TypeCast;
 
 use PHPUnit\Framework\TestCase;
-use Jasny\TestHelper;
 use Jasny\TypeCast\typeGuess;
 
 /**
- * @covers \Jasny\TypeCast\typeGuess
+ * @covers \Jasny\TypeCast\TypeGuess
  */
-class typeGuessTest extends TestCase
+class TypeGuessTest extends TestCase
 {
-    use TestHelper;
+    use \Jasny\TestHelper;
 
     /**
-     * @var typeGuess
+     * @var TypeGuess
      */
     protected $typeGuess;
     
     public function setUp()
     {
-        $this->typeGuess = new typeGuess();
+        $this->typeGuess = new TypeGuess();
     }
     
     public function testForTypes()
@@ -50,13 +49,15 @@ class typeGuessTest extends TestCase
     public function scalarProvider()
     {
         return [
+            [1, ['integer'], 'integer'],
             [1, ['integer', 'boolean'], 'integer'],
             [true, ['integer', 'boolean'], 'boolean'],
-            ['on', ['string', 'boolean'], 'boolean'],
+            ['on', ['string', 'boolean'], 'string'],
             ['foo', ['string', 'integer', 'float'], 'string'],
             ['10.0', ['integer', 'boolean'], 'integer'],
             ['1', ['integer', 'boolean'], 'integer'],
             ['on', ['integer', 'boolean'], 'boolean'],
+            [10.0, ['integer', 'float'], 'float'],
             ['10.0', ['integer', 'float'], 'float'],
             ['10.0', ['string', 'integer', 'float'], 'float'],
             ['10', ['string', 'integer', 'float'], 'integer'],
@@ -75,7 +76,27 @@ class typeGuessTest extends TestCase
     public function testGuessForScalar($value, $types, $expected)
     {
         $type = $this->typeGuess->forTypes($types)->guessFor($value);
-        
+
+        $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
+    }
+
+    public function scalarToArrayProvider()
+    {
+        return [
+            ['10', ['string[]', 'array'], 'array'],
+            [10, ['string[]', 'integer[]'], 'integer[]'],
+            ['10', ['string[]', 'integer[]'], 'integer[]'],
+            ['foo', ['string[]', 'integer[]'], 'string[]']
+        ];
+    }
+
+    /**
+     * @dataProvider scalarToArrayProvider
+     */
+    public function testGuessForScalarToArray($value, $types, $expected)
+    {
+        $type = $this->typeGuess->forTypes($types)->guessFor($value);
+
         $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
     }
 

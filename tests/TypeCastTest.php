@@ -56,8 +56,9 @@ class TypeCastTest extends TestCase
         return [
             ['array', TypeCast\ArrayHandler::class],
             ['boolean', TypeCast\BooleanHandler::class],
-            ['float', TypeCast\FloatHandler::class],
-            ['integer', TypeCast\IntegerHandler::class],
+            ['float', TypeCast\NumberHandler::class],
+            ['integer', TypeCast\NumberHandler::class],
+            ['integer|float', TypeCast\NumberHandler::class],
             ['mixed', TypeCast\MixedHandler::class],
             ['object', TypeCast\ObjectHandler::class],
             ['resource', TypeCast\ResourceHandler::class],
@@ -77,6 +78,7 @@ class TypeCastTest extends TestCase
         $typecast = new TypeCast();
         
         $handler = $typecast->getHandler($type);
+
         $this->assertInstanceOf($class, $handler);
     }
 

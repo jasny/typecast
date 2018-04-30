@@ -4,25 +4,24 @@ namespace Jasny\TypeCast;
 
 use PHPUnit\Framework\TestCase;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\FloatHandler;
+use Jasny\TypeCast\NumberHandler;
 
 /**
- * @covers \Jasny\TypeCast\FloatHandler
  * @covers \Jasny\TypeCast\NumberHandler
  * @covers \Jasny\TypeCast\Handler
  */
-class FloatHandlerTest extends TestCase
+class NumberHandlerIntegerTest extends TestCase
 {
     use \Jasny\TestHelper;
     
     /**
-     * @var FloatHandler
+     * @var NumberHandler
      */
     protected $handler;
     
     public function setUp()
     {
-        $this->handler = new FloatHandler();
+        $this->handler = (new NumberHandler())->forType('integer');
     }
     
     public function testUsingTypecast()
@@ -35,7 +34,7 @@ class FloatHandlerTest extends TestCase
     
     public function testForType()
     {
-        $ret = $this->handler->forType('float');
+        $ret = $this->handler->forType('integer');
         $this->assertSame($this->handler, $ret);
     }
     
@@ -52,16 +51,15 @@ class FloatHandlerTest extends TestCase
     {
         return [
             [null, null],
-            [10.44, 10.44],
-            [-5.22, -5.22],
-            [INF, INF],
-            [1.0, 1],
-            [1.0, true],
-            [0.0, false],
-            [100.0, '100'],
-            [10.44, '10.44'],
-            [-10.44, '-10.44'],
-            [0.0, '']
+            [1, 1],
+            [0, 0],
+            [-1, -1],
+            [10, 10.44],
+            [1, true],
+            [0, false],
+            [100, '100'],
+            [100, '100.44'],
+            [0, '']
         ];
     }
     
@@ -76,7 +74,7 @@ class FloatHandlerTest extends TestCase
     
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast string "foo" to float
+     * @expectedExceptionMessage  Unable to cast string "foo" to integer
      */
     public function testCastWithRandomString()
     {
@@ -85,7 +83,7 @@ class FloatHandlerTest extends TestCase
     
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast array to float
+     * @expectedExceptionMessage  Unable to cast array to integer
      */
     public function testCastWithArray()
     {
@@ -93,10 +91,8 @@ class FloatHandlerTest extends TestCase
     }
     
     /**
-     * Test type casting an array to float
-     *
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast stdClass object to float
+     * @expectedExceptionMessage  Unable to cast stdClass object to integer
      */
     public function testCastWithObject()
     {
@@ -104,10 +100,8 @@ class FloatHandlerTest extends TestCase
     }
     
     /**
-     * Test type casting an resource to float
-     *
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast gd resource to float
+     * @expectedExceptionMessage  Unable to cast gd resource to integer
      */
     public function testCastWithResource()
     {
@@ -118,5 +112,4 @@ class FloatHandlerTest extends TestCase
         $resource = imagecreate(10, 10);
         $this->handler->cast($resource);
     }
-    
 }

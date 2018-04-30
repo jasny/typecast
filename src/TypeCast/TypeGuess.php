@@ -10,24 +10,24 @@ use ReflectionClass;
 
 /**
  * Guess a type.
+ * Type guessing is not terribly fast. On average it will take about 0.5ms.
+ *
+ * @internal Concessions to code quality have been made in order to increase performance a bit.
  */
-class TypeGuess
+class TypeGuess implements TypeGuessInterface
 {
     /**
      * Possible types
      * @var array
      */
-    public $types;
+    public $types = [];
 
 
     /**
      * Class constructor
-     * 
-     * @param string[] $types  Possible types
      */
-    public function __construct(array $types = [])
+    public function __construct()
     {
-        $this->types = array_values($types);
     }
     
     /**
@@ -36,7 +36,7 @@ class TypeGuess
      * @param array $types
      * @return static
      */
-    public function forTypes(array $types): self
+    public function forTypes(array $types): TypeGuessInterface
     {
         if (count($types) === count($this->types) && count(array_diff($types, $this->types)) === 0) {
             return $this;
@@ -80,7 +80,7 @@ class TypeGuess
             ->onlyPossible($value)
             ->reduceScalarTypes($value)
             ->reduceArrayTypes($value)
-            ->reduceClasses()
+            ->pickArrayForScalar($value)
             ->conclude();
     }
 
@@ -103,7 +103,13 @@ class TypeGuess
      */
     protected function onlyPossible($value): self
     {
-        return count($this->types) < 2 ? $this : $this->forTypes($this->getPossibleTypes($value));
+        if (count($this->types) < 2) {
+            return $this;
+        }
+
+        $possible = $this->getPossibleTypes($value);
+
+        return empty($possible) ? $this : $this->forTypes($possible);
     }
 
     /**
@@ -118,7 +124,7 @@ class TypeGuess
             return [];
         }
 
-        $type = $this->isAssoc($value) ? 'assoc' : ($value instanceof Traversable ? 'array' : gettype($value));
+        $type = $this->getTypeOf($value);
         
         switch ($type) {
             case 'boolean':
@@ -146,23 +152,31 @@ class TypeGuess
      */
     protected function getPossibleScalarTypes($value): array
     {
-        $singleTypes = array_filter($this->types, function($type) {
-            return substr($type, -2) !== '[]';
-        });
-        
-        $not = [
-            'string' => is_bool($value),
-            'integer' => is_string($value) && !is_numeric($value),
-            'float' => is_bool($value) || (is_string($value) && !is_numeric($value)),
-            'boolean' => is_string($value) && !in_array($value, BooleanHandler::getBooleanStrings()),
-            'array' => true,
-            'object' => true,
-            'resource' => true,
-            'stdClass' => true,
-            'DateTime' => is_bool($value) || is_float($value) || (is_string($value) && strtotime($value) === false)
-        ];
+        return array_filter($this->types, function(string $type) use ($value) {
+            if (substr($type, -2) === '[]') {
+                return false;
+            }
 
-        return array_udiff($singleTypes, array_keys(array_filter($not)), 'strcasecmp');
+            switch (strtolower($type)) {
+                case 'string':
+                    return !is_bool($value);
+                case 'integer':
+                    return !is_string($value) || is_numeric($value);
+                case 'float':
+                    return !is_bool($value) && (!is_string($value) || is_numeric($value));
+                case 'boolean':
+                    return !is_string($value) || in_array($value, BooleanHandler::getBooleanStrings());
+                case 'datetime':
+                    return !is_bool($value) && !is_float($value) && (!is_string($value) || strtotime($value) !== false);
+                case 'array':
+                case 'object':
+                case 'resource':
+                case 'stdclass':
+                    return false;
+                default:
+                    return true;
+            }
+        });
     }
 
     /**
@@ -251,20 +265,20 @@ class TypeGuess
      */
     protected function reduceScalarTypes($value): self
     {
-        if (!is_scalar($value) || count($this->types) === 1) {
+        if (count($this->types) < 2 || !is_scalar($value)) {
             return $this;
         }
 
         $preferredTypes = ['string', 'integer', 'float', 'boolean', DateTime::class];
         $types = array_uintersect($this->types, $preferredTypes, 'strcasecmp');
 
-        if (empty($types)) {
-            return $this;
+        if (count($types) < 2) {
+            return empty($types) ? $this : $this->forTypes($types);
         }
 
         $remove = [];
 
-        if (in_array(DateTime::class, $types) || in_array('boolean', $types)) {
+        if (count(array_uintersect($types, [DateTime::class], 'strcasecmp')) > 0) {
             $remove[] = 'string';
         }
 
@@ -275,9 +289,12 @@ class TypeGuess
         if (in_array('boolean', $types) && is_bool($value)) {
             $remove[] = 'integer';
             $remove[] = 'float';
+            $remove[] = 'string';
         } elseif (in_array('integer', $types) || in_array('float', $types)) {
             $remove[] = 'boolean';
             $remove[] = 'string';
+        } elseif (in_array('boolean', $types) && in_array('string', $types)) {
+            $remove[] = 'boolean';
         }
 
         if (in_array('integer', $types) && in_array('float', $types)) {
@@ -295,7 +312,7 @@ class TypeGuess
      */
     protected function reduceArrayTypes($value): self
     {
-        if (!is_iterable($value) || count($this->types) === 1 || in_array('array', $this->types)) {
+        if (count($this->types) === 1 || !is_iterable($value) || in_array('array', $this->types)) {
             return $this;
         }
 
@@ -329,43 +346,36 @@ class TypeGuess
     }
 
     /**
-     * Pick concrete classes over abstract classes and interfaces, plus remove classes that are super seeded.
-     * 
-     * @return static
+     * If all types are arrays and the value is not, guess an array type.
+     *
+     * @param $value
+     * @return TypeGuess
      */
-    protected function reduceClasses(): self
+    protected function pickArrayForScalar($value): self
     {
-        if (count($this->types) === 1) {
+        if (
+            count($this->types) < 2 ||
+            (!is_scalar($value) && (!is_object($value) || get_class($value) === stdClass::class))
+        ) {
             return $this;
         }
 
-        $remove = [];
+        if (in_array('array', $this->types)) {
+            $types = array_filter($this->types, function($type) {
+                return substr($type, -2) !== '[]';
+            });
 
-        $classes = array_filter($this->types, function($type) {
-            return class_exists($type) || interface_exists($type);
-        });
+            return $this->forTypes($types);
+        }
 
-        if (count($classes) < 2) {
+        $subtypes = $this->getSubTypes();
+        if (count($subtypes) !== count($this->types)) {
             return $this;
         }
 
-        $reflections = array_map(function($class) {
-            return new ReflectionClass($class);
-        });
+        $type = $this->forTypes($subtypes)->guessFor($value);
 
-        foreach ($reflections as $class) {
-            foreach ($reflections as $compare) {
-                if ($class->isSubclassOf($compare)) {
-                    $classIsAbstract = $class->isAbstract() || $class->isInterface();
-                    $compareIsAbstract = $compare->isAbstract() || $compare->isInterface();
-
-                    $remove[] = $compareIsAbstract && !$classIsAbstract ? $compare->name : $class->name;
-                    break;
-                }
-            }
-        }
-
-        return $this->forTypes(array_diff($this->types, $remove));
+        return $type ? $this->forTypes([$type . '[]']) : $this;
     }
 
     /**
@@ -392,14 +402,29 @@ class TypeGuess
 
 
     /**
-     * Check if value is an associated array or stdClass object
-     * 
-     * @param mixed $value
-     * @return bool
+     * Get the type of a value
+     *
+     * @param $value
+     * @return string
      */
-    protected function isAssoc($value): bool
+    protected function getTypeOf($value): string
     {
-        return (is_array($value) && count(array_filter(array_keys($value), 'is_string')) > 0)
-            || (is_object($value) && get_class($value) === stdClass::class);
+        $type = gettype($value);
+
+        switch ($type) {
+            case 'integer':
+            case 'boolean':
+            case 'string':
+                return $type;
+            case 'double':
+                return 'float';
+            case 'array':
+                return count(array_filter(array_keys($value), 'is_string')) > 0 ? 'assoc' : 'array';
+            case 'object':
+                return $value instanceof Traversable ? 'array' :
+                    ($value instanceof DateTime ? DateTime::class : 'object');
+            default:
+                return $type;
+        }
     }
 }

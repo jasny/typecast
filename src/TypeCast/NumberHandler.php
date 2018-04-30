@@ -3,14 +3,53 @@
 namespace Jasny\TypeCast;
 
 use Jasny\TypeCast\Handler;
+use LogicException;
 
 /**
  * Type cast to an integer or float
  */
-abstract class NumberHandler extends Handler
+class NumberHandler extends Handler
 {
     /**
-     * Cast value to an integer
+     * @var string
+     */
+    protected $type;
+
+    /**
+     * Get the type what the handler is casting to.
+     *
+     * @return string
+     */
+    protected function getType(): string
+    {
+        return $this->type;
+    }
+
+    /**
+     * Use handler to cast to type.
+     *
+     * @param string $type
+     * @return static
+     * @throws LogicException if handler can't be used
+     */
+    public function forType(string $type): HandlerInterface
+    {
+        if (!in_array($type, ['integer', 'float', 'integer|float', 'float|integer'])) {
+            throw new LogicException("Unable to use " . get_class($this) . " to cast to $type");
+        }
+
+        if ($this->type === $type || ((strstr($this->type, '|') && strstr($type, '|')))) {
+            return $this;
+        }
+
+        $handler = clone $this;
+        $handler->type = $type;
+
+        return $handler;
+    }
+
+    /**
+     * Cast value to a number
      *
      * @param mixed $value
      * @return int|float|mixed
@@ -18,47 +57,52 @@ abstract class NumberHandler extends Handler
     public function cast($value)
     {
         $fn = 'cast' . ucfirst(gettype($value));
-        
-        if (method_exists($this, $fn)) {
-            $value = $this->$fn($value);
-        } else {
-            settype($value, $this->getType());
-        }
+        return method_exists($this, $fn) ? $this->$fn($value) : $this->dontCast($value);
+    }
 
-        return $value;
-    }
-    
+
     /**
-     * Cast a resource to a number
-     * 
-     * @param resource $value
-     * @return resource
+     * Cast integer to a number
+     *
+     * @param $value
+     * @return int|float
      */
-    protected function castResource($value)
+    protected function castInteger($value)
     {
-        return $this->dontCast($value);
+        return $this->type === 'float' ? (float)$value : $value;
     }
-    
+
     /**
-     * Cast an object to a number
-     * 
-     * @param object $value
-     * @return object
+     * Cast float to a number
+     *
+     * @param $value
+     * @return int|float
      */
-    protected function castObject($value)
+    protected function castFloat($value)
     {
-        return $this->dontCast($value);
+        return $this->type === 'integer' ? (int)$value : $value;
     }
-    
+
     /**
-     * Cast an array to a number
-     * 
-     * @param array $value
-     * @return array
+     * Alias of castFloat
+     *
+     * @param $value
+     * @return int|float
      */
-    protected function castArray(array $value): array
+    final protected function castDouble($value)
     {
-        return $this->dontCast($value);
+        return $this->castFloat($value);
+    }
+
+    /**
+     * Cast boolean to a number
+     *
+     * @param $value
+     * @return int|float
+     */
+    protected function castBoolean($value)
+    {
+        return $this->type === 'float' ? (float)$value : (int)$value;
     }
 
     /**
@@ -72,11 +116,12 @@ abstract class NumberHandler extends Handler
         $val = trim($value);
     
         if (!is_numeric($val) && $val !== '') {
-            return $this->dontCast($val);
+            return $this->dontCast($value);
         }
         
-        settype($val, $this->getType());
-        
+        $type = strstr($this->type, '|') ? (strstr($val, '.') ? 'float' : 'integer') : $this->type;
+        settype($val, $type);
+
         return $val;
     }
 }

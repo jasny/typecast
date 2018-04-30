@@ -9,8 +9,8 @@ use Jasny\TypeCastInterface;
 use Jasny\TypeCast\MultipleHandler;
 
 /**
- * @covers Jasny\TypeCast\MultipleHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\MultipleHandler
+ * @covers \Jasny\TypeCast\Handler
  */
 class MultipleHandlerTest extends TestCase
 {
