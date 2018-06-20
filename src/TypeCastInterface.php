@@ -13,7 +13,7 @@ interface TypeCastInterface
      * @param mixed $value
      * @return static
      */
-    public function forValue($value): self;
+    public function value($value): self;
     
     /**
      * Set the display name.

@@ -14,5 +14,5 @@ interface HandlerRepositoryInterface
      * @return HandlerInterface
      * @throws \OutOfBoundsException
      */
-    public function getHandler(string $type): HandlerInterface;
+    public function desire(string $type): HandlerInterface;
 }

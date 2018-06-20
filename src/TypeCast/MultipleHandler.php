@@ -198,7 +198,7 @@ class MultipleHandler extends Handler
             return true;
         }
 
-        if ($subtype !== 'object' && !in_array('object[]', $this->types)) {
+        if ($subtype === 'object' && !in_array('object[]', $this->types)) {
             $class = get_class($base);
         }
 

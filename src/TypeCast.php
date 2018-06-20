@@ -71,23 +71,12 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
     }
     
     /**
-     * Factory method
-     *
-     * @param mixed $value
-     * @return static
-     */
-    public static function value($value): self
-    {
-        return new static($value);
-    }
-    
-    /**
      * Create a clone of this typecast object for a different value.
      * 
      * @param mixed $value
      * @return static
      */
-    public function forValue($value): TypeCastInterface
+    public function value($value): TypeCastInterface
     {
         $cast = clone $this;
         $cast->value = $value;
@@ -102,7 +91,7 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
      * @return HandlerInterface
      * @throws OutOfBoundsException
      */
-    public function getHandler(string $type): HandlerInterface
+    public function desire(string $type): HandlerInterface
     {
         if (isset($this->handlers[$type])) {
             $key = $type;

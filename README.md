@@ -28,38 +28,18 @@ Usage
 ```php
 use Jasny\TypeCast;
 
-TypeCast::value(null)->to('string'); // null
+$typecast = new TypeCast();
 
-TypeCast::value('987')->to('integer'); // 987
-TypeCast::value('2015-01-01')->to(DateTime::class); // new DateTime('2015-01-01)
-TypeCast::value($data)->to(FooBar::class); // FooBar::__set_state($data)
+$typecast->value(null)->to('string'); // null
+
+$typecast->value('987')->to('integer'); // 987
+$typecast->value('2015-01-01')->to(DateTime::class); // new DateTime('2015-01-01)
+$typecast->value($data)->to(FooBar::class); // FooBar::__set_state($data)
 
 // Unable to cast
-TypeCast::value('red')->to('float'); // 'red' + triggers a notice
-TypeCast::value(new stdClass())->to('int'); // stdClass object + triggers a notice
+$typecast->value('red')->to('float'); // 'red' + triggers a notice
+$typecast->value(new stdClass())->to('int'); // stdClass object + triggers a notice
 ```
-
-### Dependency injection
-
-If your application supports dependency injection through containers, create a new `TypeCast` object and use the
-`forValue()` method, rather than the static `value` method.
-
-The `forValue()` method will clone the `TypeCast` object. This means any aliases will propagate.
-
-```php
-use Jasny\TypeCast;
-use Jasny\TypeCastInterface;
-
-$container = new Container([
-  TypeCastInterface::class => function() {
-    return new TypeCast();
-  }
-]);
-
-$container->get(TypeCastInterface::class)->forValue('987')->to('integer');
-```
-
-_Assume that `Container` is a basic [PSR-11 compatible container](https://www.php-fig.org/psr/psr-11/)._
 
 ### Alias
 
@@ -70,15 +50,102 @@ cast to a child class.
 $typecast = new TypeCast();
 $typecast->alias(FooBarInterface::class, FooBar::class);
 
-$typecast->forValue($data)->to(FooBarInterface::class); // FooBar::__set_state($data)
+$typecast->value($data)->to(FooBarInterface::class); // FooBar::__set_state($data)
 ```
 
-### Variable name in notice message
+### Errors
+
+By default an `E_NOTICE` is triggered if a value can't be casted to desired type. `Jasny\TypeCast` follows stricter
+rules than PHP for casting values.
+
+Instead of a notice an error of any severity can be triggered. Alternatively any `Throwable` like an exception or
+error can be thrown. 
+
+```php
+$typecast = new TypeCast();
+
+$typecast->failWith(E_USER_WARNING);
+$typecast->failWith(TypeError::class);
+$typecast->failWith(UnexpectedValueException::class);
+```
+
+#### Variable name in error
 
 You can use the `setName()` method to set the property or variable name that is casted. This name will be included in
-any notice triggered when type casting. This can be useful when determining an issue.
+any error triggered when type casting. This can be useful when determining an issue.
 
 ```php
 $foo = 'red';
-TypeCast::value($foo)->setName('foo')->to('float');
+$typecast->value($foo)->setName('foo')->to('float');
+```
+
+### Dependency injection
+
+If your application supports dependency injection through containers, create a new `TypeCast` object and add it to the
+container as a service.
+
+The `value()` method will clone the `TypeCast` object. Settings like any aliases or custom handlers will propagate.
+
+```php
+use Jasny\TypeCast;
+use Jasny\TypeCastInterface;
+
+$container = new Container([
+  TypeCastInterface::class => function() {
+    $typecast = new TypeCast();
+    $typecast->alias(FooBarInterface::class, FooBar::class);
+    
+    return $typecast;
+  }
+]);
+
+$container->get(TypeCastInterface::class)->value('987')->to('integer');
+```
+
+_Assume that `Container` is any [PSR-11 compatible container](https://www.php-fig.org/psr/psr-11/)._
+
+### Handlers
+
+The `Typecast` object uses handlers to cast a value. Each handler can cast a value to a specific type. The following
+handlers are defined:
+
+* array _(includes typed arrays as `string[]` and `DateTime[]`)_
+* boolean
+* float
+* integer
+* number _(`int|float`)_
+* mixed
+* object _(includes casting to a specific class)_
+* resource
+* string
+* multiple _(e.g. `int|string` and `string|string[]`)_
+
+You may overwrite the handlers when creating the `TypeCast` object. 
+ 
+#### Desire
+
+The `desire` method will return the handler. This is an alternative approach of using the `value` method. If you need to
+cast multiple values to the same type, it's recommendable to get the handler once using `desire`.
+
+```php
+use Jasny\TypeCast;
+
+$typecast = new TypeCast();
+$typecast->desire('integer')->cast('10');
+
+$arrayHandler = $typecast->desire('array'); 
+foreach ($items as &$item) {
+  $item = $arrayHandler->cast($item);
+}
+```
+ 
+#### Multiple handler
+In cast multiple types are specified, the handler will try to guess the type the value should be cast in. This might
+hurt performance. You may use `NoTypeGuess` to have the handler give an error if the type can't be determined.
+
+```php
+use Jasny\TypeCast;
+
+$multipleHandler = new TypeCast\Handlers\MultipleHandler(new TypeCast\NoTypeGuess()); 
+$typecast = new TypeCast(null, ['multiple' => $multipleHandler] + TypeCast::getDefaultHandlers());
 ```
