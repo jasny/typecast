@@ -24,28 +24,15 @@ class TypeGuess implements TypeGuessInterface
 
 
     /**
-     * Class constructor
-     */
-    public function __construct()
-    {
-    }
-    
-    /**
      * Create a type guess object for these types
      * 
      * @param array $types
      * @return static
      */
-    public function forTypes(array $types): TypeGuessInterface
+    protected function setTypes(array $types): TypeGuessInterface
     {
-        if (count($types) === count($this->types) && count(array_diff($types, $this->types)) === 0) {
-            return $this;
-        }
-        
-        $typeGuess = clone $this;
-        $typeGuess->types = array_values($types);
-        
-        return $typeGuess;
+        $this->types = $types;
+        return $this;
     }
 
     /**
@@ -73,8 +60,10 @@ class TypeGuess implements TypeGuessInterface
      * @param mixed $value
      * @return string|null
      */
-    public function guessFor($value): ?string
+    public function guessFor($value, array $types): ?string
     {
+        $this->setTypes($types);
+
         return $this
             ->removeNull()
             ->onlyPossible($value)
@@ -92,7 +81,7 @@ class TypeGuess implements TypeGuessInterface
      */
     protected function removeNull(): self
     {
-        return $this->forTypes(array_diff($this->types, ['null']));
+        return $this->setTypes(array_diff($this->types, ['null']));
     }
 
     /**
@@ -109,7 +98,7 @@ class TypeGuess implements TypeGuessInterface
 
         $possible = $this->getPossibleTypes($value);
 
-        return empty($possible) ? $this : $this->forTypes($possible);
+        return empty($possible) ? $this : $this->setTypes($possible);
     }
 
     /**
@@ -213,10 +202,10 @@ class TypeGuess implements TypeGuessInterface
             return $types;
         }
 
-        $subHandler = $this->forTypes($subTypes);
+        $subHandler = $this->setTypes($subTypes);
 
         foreach ($value as $item) {
-            $subHandler = $subHandler->forTypes($subHandler->getPossibleTypes($item));
+            $subHandler = $subHandler->setTypes($subHandler->getPossibleTypes($item));
         }
 
         $possibleSubTypes = $subHandler->types;
@@ -273,7 +262,7 @@ class TypeGuess implements TypeGuessInterface
         $types = array_uintersect($this->types, $preferredTypes, 'strcasecmp');
 
         if (count($types) < 2) {
-            return empty($types) ? $this : $this->forTypes($types);
+            return empty($types) ? $this : $this->setTypes($types);
         }
 
         $remove = [];
@@ -301,7 +290,7 @@ class TypeGuess implements TypeGuessInterface
             $remove[] = is_float($value) || (is_string($value) && strstr($value, '.')) ? 'integer' : 'float';
         }
 
-        return $this->forTypes(array_udiff($types, $remove, 'strcasecmp'));
+        return $this->setTypes(array_udiff($types, $remove, 'strcasecmp'));
     }
 
     /**
@@ -342,7 +331,7 @@ class TypeGuess implements TypeGuessInterface
             $remove[] = $float ? 'integer' : 'float';
         }
 
-        return $this->forTypes(array_udiff($types, $remove, 'strcasecmp'));
+        return $this->setTypes(array_udiff($types, $remove, 'strcasecmp'));
     }
 
     /**
@@ -365,7 +354,7 @@ class TypeGuess implements TypeGuessInterface
                 return substr($type, -2) !== '[]';
             });
 
-            return $this->forTypes($types);
+            return $this->setTypes($types);
         }
 
         $subtypes = $this->getSubTypes();
@@ -373,9 +362,9 @@ class TypeGuess implements TypeGuessInterface
             return $this;
         }
 
-        $type = $this->forTypes($subtypes)->guessFor($value);
+        $type = $this->setTypes($subtypes)->guessFor($value);
 
-        return $type ? $this->forTypes([$type . '[]']) : $this;
+        return $type ? $this->setTypes([$type . '[]']) : $this;
     }
 
     /**
@@ -385,16 +374,19 @@ class TypeGuess implements TypeGuessInterface
      */
     protected function conclude(): ?string
     {
-        if (count($this->types) < 2) {
-            return reset($this->types) ?: null;
+        $types = $this->types;
+        $this->types = [];
+
+        if (count($types) < 2) {
+            return reset($types) ?: null;
         }
 
         if (
-            count($this->types) === 2 &&
-            (is_a($this->types[0], Traversable::class, true) xor is_a($this->types[1], Traversable::class, true))
+            count($types) === 2 &&
+            (is_a($types[0], Traversable::class, true) xor is_a($types[1], Traversable::class, true))
         ) {
-            $types = is_a($this->types[0], Traversable::class, true) ? $this->types : array_reverse($this->types);
-            return sprintf('%s|%s[]', ...$types);
+            $args = is_a($types[0], Traversable::class, true) ? $types : array_reverse($types);
+            return vsprintf('%s|%s[]', $args);
         }
 
         return null;

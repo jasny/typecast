@@ -9,7 +9,7 @@ use Traversable;
 use OutOfBoundsException;
 
 // Default handlers
-use Jasny\TypeCast\{
+use Jasny\TypeCast\Handler\{
     ArrayHandler,
     BooleanHandler,
     FloatHandler,

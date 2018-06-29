@@ -13,7 +13,7 @@ interface TypeGuessInterface
      * @param array $types
      * @return static
      */
-    public function forTypes(array $types): self;
+    //public function forTypes(array $types): self;
 
     /**
      * Guess the handler for the value.
@@ -21,5 +21,5 @@ interface TypeGuessInterface
      * @param mixed $value
      * @return string|null
      */
-    public function guessFor($value): ?string;
+    public function guessFor($value, array $types): ?string;
 }

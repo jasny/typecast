@@ -1,6 +1,6 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Handler;
 
 use Jasny\TypeCastInterface;
 use Jasny\TypeCast\Handler;
