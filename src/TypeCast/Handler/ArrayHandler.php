@@ -96,8 +96,7 @@ class ArrayHandler extends Handler
 
         $handler = clone $this;
         $handler->typecast = $typecast;
-        $handler->name = $typecast->getName();
-        
+
         return $handler;
     }
     

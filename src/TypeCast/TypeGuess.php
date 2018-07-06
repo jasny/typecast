@@ -6,16 +6,19 @@ use Jasny\TypeCast\BooleanHandler;
 use stdClass;
 use DateTime;
 use Traversable;
-use ReflectionClass;
 
 /**
  * Guess a type.
- * Type guessing is not terribly fast. On average it will take about 0.5ms.
  *
  * @internal Concessions to code quality have been made in order to increase performance a bit.
  */
 class TypeGuess implements TypeGuessInterface
 {
+    /**
+     * @var mixed
+     */
+    public $value;
+
     /**
      * Possible types
      * @var array
@@ -32,6 +35,7 @@ class TypeGuess implements TypeGuessInterface
     protected function setTypes(array $types): TypeGuessInterface
     {
         $this->types = $types;
+
         return $this;
     }
 
@@ -58,18 +62,20 @@ class TypeGuess implements TypeGuessInterface
      * Guess the handler for the value.
      * 
      * @param mixed $value
+     * @param array $types
      * @return string|null
      */
-    public function guessFor($value, array $types): ?string
+    public function guess($value, array $types): ?string
     {
+        $this->value = $value;
         $this->setTypes($types);
 
         return $this
             ->removeNull()
-            ->onlyPossible($value)
-            ->reduceScalarTypes($value)
-            ->reduceArrayTypes($value)
-            ->pickArrayForScalar($value)
+            ->onlyPossible()
+            ->reduceScalarTypes()
+            ->reduceArrayTypes()
+            ->pickArrayForScalar()
             ->conclude();
     }
 
@@ -87,16 +93,15 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Return handler with only the possible types for the value.
      *
-     * @param mixed $value
      * @return static
      */
-    protected function onlyPossible($value): self
+    protected function onlyPossible(): self
     {
         if (count($this->types) < 2) {
             return $this;
         }
 
-        $possible = $this->getPossibleTypes($value);
+        $possible = $this->getPossibleTypes($this->value);
 
         return empty($possible) ? $this : $this->setTypes($possible);
     }
@@ -104,29 +109,28 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Get possible types based on the value
      * 
-     * @param mixed $value
      * @return array
      */
-    protected function getPossibleTypes($value): array
+    protected function getPossibleTypes(): array
     {
         if (empty($this->types)) {
             return [];
         }
 
-        $type = $this->getTypeOf($value);
+        $type = $this->getTypeOf($this->value);
         
         switch ($type) {
             case 'boolean':
             case 'integer':
             case 'float':
             case 'string':
-                return $this->getPossibleScalarTypes($value);
+                return $this->getPossibleScalarTypes($this->value);
             case 'array':
-                return $this->getPossibleArrayTypes($value);
+                return $this->getPossibleArrayTypes($this->value);
             case 'assoc':
-                return $this->getPossibleAssocTypes($value);
+                return $this->getPossibleAssocTypes($this->value);
             case 'object':
-                return $this->getPossibleObjectTypes($value);
+                return $this->getPossibleObjectTypes($this->value);
             case 'resource':
             default:
                 return array_intersect($this->types, [$type]);
@@ -136,27 +140,27 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Get possible types based on a scalar value
      * 
-     * @param mixed $value
+     * @param mixed $this->value
      * @return array
      */
-    protected function getPossibleScalarTypes($value): array
+    protected function getPossibleScalarTypes(): array
     {
-        return array_filter($this->types, function(string $type) use ($value) {
+        return array_filter($this->types, function(string $type) {
             if (substr($type, -2) === '[]') {
                 return false;
             }
 
             switch (strtolower($type)) {
                 case 'string':
-                    return !is_bool($value);
+                    return !is_bool($this->value);
                 case 'integer':
-                    return !is_string($value) || is_numeric($value);
+                    return !is_string($this->value) || is_numeric($this->value);
                 case 'float':
-                    return !is_bool($value) && (!is_string($value) || is_numeric($value));
+                    return !is_bool($this->value) && (!is_string($this->value) || is_numeric($this->value));
                 case 'boolean':
-                    return !is_string($value) || in_array($value, BooleanHandler::getBooleanStrings());
+                    return !is_string($this->value) || in_array($this->value, BooleanHandler::getBooleanStrings());
                 case 'datetime':
-                    return !is_bool($value) && !is_float($value) && (!is_string($value) || strtotime($value) !== false);
+                    return !is_bool($this->value) && !is_float($this->value) && (!is_string($this->value) || strtotime($this->value) !== false);
                 case 'array':
                 case 'object':
                 case 'resource':
@@ -171,10 +175,9 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Get possible types based on a (numeric) array value
      *
-     * @param iterable $value
      * @return array
      */
-    protected function getPossibleArrayTypes(iterable $value): array
+    protected function getPossibleArrayTypes(): array
     {
         $noSubTypes = in_array('array', $this->types);
 
@@ -184,17 +187,16 @@ class TypeGuess implements TypeGuessInterface
                 || (class_exists($type) && is_a(Traversable::class, $type, true));
         });
 
-        return $noSubTypes ? $types : $this->removeImpossibleArraySubtypes($types, $value);
+        return $noSubTypes ? $types : $this->removeImpossibleArraySubtypes($types, $this->value);
     }
 
     /**
      * Remove subtypes that aren't available for each item.
      *
      * @param array    $types
-     * @param iterable $value
      * @return array
      */
-    protected function removeImpossibleArraySubtypes(array $types, iterable $value): array
+    protected function removeImpossibleArraySubtypes(array $types): array
     {
         $subTypes = $this->getSubTypes();
 
@@ -204,7 +206,7 @@ class TypeGuess implements TypeGuessInterface
 
         $subHandler = $this->setTypes($subTypes);
 
-        foreach ($value as $item) {
+        foreach ($this->value as $item) {
             $subHandler = $subHandler->setTypes($subHandler->getPossibleTypes($item));
         }
 
@@ -220,10 +222,9 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Get possible types based on associated array or stdClass object.
      *
-     * @param mixed $value
      * @return array
      */
-    protected function getPossibleAssocTypes($value): array
+    protected function getPossibleAssocTypes(): array
     {
         $exclude = ['string', 'integer', 'float', 'boolean', 'resource', 'DateTime'];
         
@@ -233,14 +234,13 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Get possible types based on an object.
      * 
-     * @param object $value
      * @return array
      */
-    protected function getPossibleObjectTypes($value): array
+    protected function getPossibleObjectTypes(): array
     {
-        return array_filter($this->types, function($type) use ($value) {
-            return ((class_exists($type) || interface_exists($type)) && is_a($value, $type))
-                || ($type === 'string' && method_exists($value, '__toString'))
+        return array_filter($this->types, function($type) {
+            return ((class_exists($type) || interface_exists($type)) && is_a($this->value, $type))
+                || ($type === 'string' && method_exists($this->value, '__toString'))
                 || (in_array($type, ['object', 'array']) && $type instanceof stdClass);
         });
     }
@@ -249,12 +249,11 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Remove scalar types that are unlikely to be preferred.
      *
-     * @param mixed $value
      * @return static
      */
-    protected function reduceScalarTypes($value): self
+    protected function reduceScalarTypes(): self
     {
-        if (count($this->types) < 2 || !is_scalar($value)) {
+        if (count($this->types) < 2 || !is_scalar($this->value)) {
             return $this;
         }
 
@@ -275,7 +274,7 @@ class TypeGuess implements TypeGuessInterface
             $remove[] = DateTime::class;
         }
 
-        if (in_array('boolean', $types) && is_bool($value)) {
+        if (in_array('boolean', $types) && is_bool($this->value)) {
             $remove[] = 'integer';
             $remove[] = 'float';
             $remove[] = 'string';
@@ -287,7 +286,7 @@ class TypeGuess implements TypeGuessInterface
         }
 
         if (in_array('integer', $types) && in_array('float', $types)) {
-            $remove[] = is_float($value) || (is_string($value) && strstr($value, '.')) ? 'integer' : 'float';
+            $remove[] = is_float($this->value) || (is_string($this->value) && strstr($this->value, '.')) ? 'integer' : 'float';
         }
 
         return $this->setTypes(array_udiff($types, $remove, 'strcasecmp'));
@@ -296,12 +295,11 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Remove scalar types that are unlikely to be preferred.
      *
-     * @param mixed $value
      * @return static
      */
-    protected function reduceArrayTypes($value): self
+    protected function reduceArrayTypes(): self
     {
-        if (count($this->types) === 1 || !is_iterable($value) || in_array('array', $this->types)) {
+        if (count($this->types) === 1 || !is_iterable($this->value) || in_array('array', $this->types)) {
             return $this;
         }
 
@@ -324,8 +322,8 @@ class TypeGuess implements TypeGuessInterface
         if (in_array('integer[]', $types) && in_array('float[]', $types)) {
             $float = false;
 
-            foreach ($value as $item) {
-                $float = $float || is_float($value) || (is_string($value) && strstr($value, '.'));
+            foreach ($this->value as $item) {
+                $float = $float || is_float($this->value) || (is_string($this->value) && strstr($this->value, '.'));
             }
 
             $remove[] = $float ? 'integer' : 'float';
@@ -337,14 +335,13 @@ class TypeGuess implements TypeGuessInterface
     /**
      * If all types are arrays and the value is not, guess an array type.
      *
-     * @param $value
      * @return TypeGuess
      */
-    protected function pickArrayForScalar($value): self
+    protected function pickArrayForScalar(): self
     {
         if (
             count($this->types) < 2 ||
-            (!is_scalar($value) && (!is_object($value) || get_class($value) === stdClass::class))
+            (!is_scalar($this->value) && (!is_object($this->value) || get_class($this->value) === stdClass::class))
         ) {
             return $this;
         }
@@ -362,7 +359,7 @@ class TypeGuess implements TypeGuessInterface
             return $this;
         }
 
-        $type = $this->setTypes($subtypes)->guessFor($value);
+        $type = $this->setTypes($subtypes)->guessFor($this->value);
 
         return $type ? $this->setTypes([$type . '[]']) : $this;
     }
@@ -375,7 +372,10 @@ class TypeGuess implements TypeGuessInterface
     protected function conclude(): ?string
     {
         $types = $this->types;
+
+        // Reset
         $this->types = [];
+        $this->value = null;
 
         if (count($types) < 2) {
             return reset($types) ?: null;
@@ -396,12 +396,11 @@ class TypeGuess implements TypeGuessInterface
     /**
      * Get the type of a value
      *
-     * @param $value
      * @return string
      */
-    protected function getTypeOf($value): string
+    protected function getTypeOf(): string
     {
-        $type = gettype($value);
+        $type = gettype($this->value);
 
         switch ($type) {
             case 'integer':
@@ -411,10 +410,10 @@ class TypeGuess implements TypeGuessInterface
             case 'double':
                 return 'float';
             case 'array':
-                return count(array_filter(array_keys($value), 'is_string')) > 0 ? 'assoc' : 'array';
+                return count(array_filter(array_keys($this->value), 'is_string')) > 0 ? 'assoc' : 'array';
             case 'object':
-                return $value instanceof Traversable ? 'array' :
-                    ($value instanceof DateTime ? DateTime::class : 'object');
+                return $this->value instanceof Traversable ? 'array' :
+                    ($this->value instanceof DateTime ? DateTime::class : 'object');
             default:
                 return $type;
         }

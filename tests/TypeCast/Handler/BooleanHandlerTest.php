@@ -1,32 +1,34 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
+use Jasny\TestHelper;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\NumberHandler;
+use Jasny\TypeCast\Handler\BooleanHandler;
 
 /**
- * @covers \Jasny\TypeCast\NumberHandler
  * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\BooleanHandler
  */
-class NumberHandlerIntegerTest extends TestCase
+class BooleanHandlerTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
     
     /**
-     * @var NumberHandler
+     * @var BooleanHandler
      */
     protected $handler;
     
     public function setUp()
     {
-        $this->handler = (new NumberHandler())->forType('integer');
+        $this->handler = new BooleanHandler();
     }
     
     public function testUsingTypecast()
     {
         $typecast = $this->createMock(TypeCastInterface::class);
+        $typecast->expects($this->once())->method('getName')->willReturn(null);
         
         $ret = $this->handler->usingTypecast($typecast);
         $this->assertSame($this->handler, $ret);
@@ -34,7 +36,7 @@ class NumberHandlerIntegerTest extends TestCase
     
     public function testForType()
     {
-        $ret = $this->handler->forType('integer');
+        $ret = $this->handler->forType('boolean');
         $this->assertSame($this->handler, $ret);
     }
     
@@ -51,15 +53,20 @@ class NumberHandlerIntegerTest extends TestCase
     {
         return [
             [null, null],
-            [1, 1],
-            [0, 0],
-            [-1, -1],
-            [10, 10.44],
-            [1, true],
-            [0, false],
-            [100, '100'],
-            [100, '100.44'],
-            [0, '']
+            [true, true],
+            [true, 1],
+            [true, -1],
+            [true, 10],
+            [true, '1'],
+            [true, 'true'],
+            [true, 'yes'],
+            [true, 'on'],
+            [false, false],
+            [false, 0],
+            [false, '0'],
+            [false, 'false'],
+            [false, 'no'],
+            [false, 'off']
         ];
     }
     
@@ -74,7 +81,7 @@ class NumberHandlerIntegerTest extends TestCase
     
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast string "foo" to integer
+     * @expectedExceptionMessage  Unable to cast string "foo" to boolean
      */
     public function testCastWithRandomString()
     {
@@ -83,7 +90,20 @@ class NumberHandlerIntegerTest extends TestCase
     
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast array to integer
+     * @expectedExceptionMessage  Unable to cast QUX from string "foo" to boolean
+     */
+    public function testCastUsingName()
+    {
+        $typecast = $this->createMock(TypeCastInterface::class);
+        $typecast->expects($this->once())->method('getName')->willReturn('QUX');
+
+        $handler = $this->handler->usingTypecast($typecast);
+        $handler->cast('foo');
+    }
+    
+    /**
+     * @expectedException         \PHPUnit\Framework\Error\Notice
+     * @expectedExceptionMessage  Unable to cast array to boolean
      */
     public function testCastWithArray()
     {
@@ -92,7 +112,7 @@ class NumberHandlerIntegerTest extends TestCase
     
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast stdClass object to integer
+     * @expectedExceptionMessage  Unable to cast stdClass object to boolean
      */
     public function testCastWithObject()
     {
@@ -100,16 +120,19 @@ class NumberHandlerIntegerTest extends TestCase
     }
     
     /**
+     * Test type casting an resource to boolean
+     *
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast gd resource to integer
+     * @expectedExceptionMessage  Unable to cast gd resource to boolean
      */
     public function testCastWithResource()
     {
         if (!function_exists('imagecreate')) {
             $this->markTestSkipped("GD not available. Using gd resource for test.");
         }
-        
+
         $resource = imagecreate(10, 10);
         $this->handler->cast($resource);
     }
+    
 }

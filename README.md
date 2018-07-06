@@ -30,15 +30,15 @@ use Jasny\TypeCast;
 
 $typecast = new TypeCast();
 
-$typecast->value(null)->to('string'); // null
+$typecast->to('string')->cast(null); // null
 
-$typecast->value('987')->to('integer'); // 987
-$typecast->value('2015-01-01')->to(DateTime::class); // new DateTime('2015-01-01)
-$typecast->value($data)->to(FooBar::class); // FooBar::__set_state($data)
+$typecast->to('integer')->cast('987'); // 987
+$typecast->to(DateTime::class)->cast('2015-01-01'); // new DateTime('2015-01-01)
+$typecast->to(FooBar::class)->cast($data); // FooBar::__set_state($data)
 
 // Unable to cast
-$typecast->value('red')->to('float'); // 'red' + triggers a notice
-$typecast->value(new stdClass())->to('int'); // stdClass object + triggers a notice
+$typecast->to('float')->cast('red'); // 'red' + triggers a notice
+$typecast->to('int')->cast(new stdClass()); // stdClass object + triggers a notice
 ```
 
 ### Alias
@@ -50,7 +50,7 @@ cast to a child class.
 $typecast = new TypeCast();
 $typecast->alias(FooBarInterface::class, FooBar::class);
 
-$typecast->value($data)->to(FooBarInterface::class); // FooBar::__set_state($data)
+$typecast->to(FooBarInterface::class)->cast($data); // FooBar::__set_state($data)
 ```
 
 ### Errors

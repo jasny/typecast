@@ -3,6 +3,7 @@
 namespace Jasny\TypeCast\Handler;
 
 use Jasny\TypeCast\Handler;
+use Jasny\TypeCast\HandlerInterface;
 use LogicException;
 
 /**

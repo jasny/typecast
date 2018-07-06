@@ -1,28 +1,28 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
+use Jasny\TestHelper;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\StringHandler;
-use Jasny\TypeCast\Test\FooBar;
+use Jasny\TypeCast\Handler\NumberHandler;
 
 /**
- * @covers Jasny\TypeCast\StringHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\NumberHandler
  */
-class StringHandlerTest extends TestCase
+class NumberHandlerFloatTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
     
     /**
-     * @var StringHandler
+     * @var NumberHandler
      */
     protected $handler;
     
     public function setUp()
     {
-        $this->handler = new StringHandler();
+        $this->handler = (new NumberHandler())->forType('float');
     }
     
     public function testUsingTypecast()
@@ -35,7 +35,7 @@ class StringHandlerTest extends TestCase
     
     public function testForType()
     {
-        $ret = $this->handler->forType('string');
+        $ret = $this->handler->forType('float');
         $this->assertSame($this->handler, $ret);
     }
     
@@ -52,12 +52,16 @@ class StringHandlerTest extends TestCase
     {
         return [
             [null, null],
-            ['foo', 'foo'],
-            ['100', '100'],
-            ['', ''],
-            ['1', 1],
-            ['1', true],
-            ['', false]
+            [10.44, 10.44],
+            [-5.22, -5.22],
+            [INF, INF],
+            [1.0, 1],
+            [1.0, true],
+            [0.0, false],
+            [100.0, '100'],
+            [10.44, '10.44'],
+            [-10.44, '-10.44'],
+            [0.0, '']
         ];
     }
     
@@ -69,41 +73,43 @@ class StringHandlerTest extends TestCase
         $this->assertSame($expected, $this->handler->cast($value));
     }
     
-    public function testToStringWithStringable()
-    {
-        $foobar = new FooBar();  // Implements __toString
-        $this->assertSame('foo', $this->handler->cast($foobar));
-    }
     
-    public function testToStringWithDateTime()
+    /**
+     * @expectedException         \PHPUnit\Framework\Error\Notice
+     * @expectedExceptionMessage  Unable to cast string "foo" to float
+     */
+    public function testCastWithRandomString()
     {
-        $date = new \DateTime("2014-12-31 23:15 UTC");
-        $this->assertSame('2014-12-31T23:15:00+00:00', $this->handler->cast($date));
+        $this->handler->cast('foo');
     }
     
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast array to string
+     * @expectedExceptionMessage  Unable to cast array to float
      */
-    public function testToStringWithArray()
+    public function testCastWithArray()
     {
         $this->handler->cast([10, 20]);
     }
     
     /**
+     * Test type casting an array to float
+     *
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast stdClass object to string
+     * @expectedExceptionMessage  Unable to cast stdClass object to float
      */
-    public function testToStringWithObject()
+    public function testCastWithObject()
     {
         $this->handler->cast((object)['foo' => 'bar']);
     }
     
     /**
+     * Test type casting an resource to float
+     *
      * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast gd resource to string
+     * @expectedExceptionMessage  Unable to cast gd resource to float
      */
-    public function testToStringWithResource()
+    public function testCastWithResource()
     {
         if (!function_exists('imagecreate')) {
             $this->markTestSkipped("GD not available. Using gd resource for test.");
@@ -112,4 +118,5 @@ class StringHandlerTest extends TestCase
         $resource = imagecreate(10, 10);
         $this->handler->cast($resource);
     }
+    
 }

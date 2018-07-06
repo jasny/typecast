@@ -1,18 +1,19 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
+use Jasny\TestHelper;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\ResourceHandler;
+use Jasny\TypeCast\Handler\ResourceHandler;
 
 /**
- * @covers \Jasny\TypeCast\ResourceHandler
  * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\ResourceHandler
  */
 class ResourceHandlerTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
     
     /**
      * @var ResourceHandler

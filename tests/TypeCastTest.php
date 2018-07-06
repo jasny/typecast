@@ -4,6 +4,7 @@ namespace Jasny;
 
 use PHPUnit\Framework\TestCase;
 use Jasny\TypeCast;
+use Jasny\TypeCast\Handler;
 use Jasny\TypeCast\HandlerInterface;
 
 /**
@@ -11,59 +12,22 @@ use Jasny\TypeCast\HandlerInterface;
  */
 class TypeCastTest extends TestCase
 {
-    /**
-     * Test factory method
-     */
-    public function testValue()
-    {
-        $typecast = TypeCast::value('abc123');
-        
-        $this->assertInstanceOf(TypeCast::class, $typecast);
-        $this->assertAttributeSame('abc123', 'value', $typecast);
-    }
-
-    public function testSetName()
-    {
-        $typecast = new TypeCast(null, []);
-
-        $ret = $typecast->setName('QUX');
-        $this->assertSame($typecast, $ret);
-        
-        $this->assertAttributeSame('QUX', 'name', $typecast);
-    }
-
-    public function testForValue()
-    {
-        $handler = $this->createMock(HandlerInterface::class);
-        
-        $typecast = new TypeCast('123', ['foo' => $handler]);
-        $typecast->setName('hello');
-        
-        $copy = $typecast->forValue('abc');
-        
-        $this->assertNotSame($typecast, $copy);
-        
-        $this->assertInstanceOf(TypeCast::class, $copy);
-        $this->assertAttributeEquals('abc', 'value', $copy);
-        $this->assertAttributeSame(['foo' => $handler], 'handlers', $copy);
-        $this->assertAttributeSame('hello', 'name', $copy);
-        
-        $this->assertAttributeEquals('123', 'value', $typecast);
-    }
-    
     public function handlerProvider()
     {
         return [
-            ['array', TypeCast\ArrayHandler::class],
-            ['boolean', TypeCast\BooleanHandler::class],
-            ['float', TypeCast\NumberHandler::class],
-            ['integer', TypeCast\NumberHandler::class],
-            ['integer|float', TypeCast\NumberHandler::class],
-            ['mixed', TypeCast\MixedHandler::class],
-            ['object', TypeCast\ObjectHandler::class],
-            ['resource', TypeCast\ResourceHandler::class],
-            ['string', TypeCast\StringHandler::class],
-            ['multiple', TypeCast\MultipleHandler::class]
+            ['array', Handler\ArrayHandler::class],
+            ['boolean', Handler\BooleanHandler::class],
+            ['float', Handler\NumberHandler::class],
+            ['integer', Handler\NumberHandler::class],
+            ['integer|float', Handler\NumberHandler::class],
+            ['mixed', Handler\MixedHandler::class],
+            ['object', Handler\ObjectHandler::class],
+            ['resource', Handler\ResourceHandler::class],
+            ['string', Handler\StringHandler::class],
+            ['multiple', Handler\MultipleHandler::class],
+            ['integer[]', Handler\ArrayHandler::class],
+            ['Foo', Handler\ObjectHandler::class],
+            ['Foo|bar', Handler\MultipleHandler::class]
         ];
     }
     
@@ -73,11 +37,11 @@ class TypeCastTest extends TestCase
      * @param string $type
      * @param string $class
      */
-    public function testGetHandler($type, $class)
+    public function testTo($type, $class)
     {
         $typecast = new TypeCast();
         
-        $handler = $typecast->getHandler($type);
+        $handler = $typecast->to($type);
 
         $this->assertInstanceOf($class, $handler);
     }
@@ -88,31 +52,16 @@ class TypeCastTest extends TestCase
      */
     public function testGetHandlerUnknown()
     {
-        $typecast = new TypeCast(null, []);
-        $typecast->getHandler('cow');
-    }
-    
-    public function testTo()
-    {
-        $handler = $this->createMock(HandlerInterface::class);
-        
-        $typecast = new TypeCast('ten', ['integer' => $handler]);
-
-        $handler->expects($this->once())->method('forType')->with('integer')->willReturnSelf();
-        $handler->expects($this->once())->method('usingTypecast')->with($this->identicalTo($typecast))
-            ->willReturnSelf();
-        $handler->expects($this->once())->method('cast')->with('ten')->willReturn(10);
-        
-        $ret = $typecast->to('integer');
-        $this->assertEquals(10, $ret);
+        $typecast = new TypeCast([]);
+        $typecast->to('cow');
     }
 
     public function aliasProvider()
     {
         return [
-            ['foo', 'integer'],
-            ['foo[]', 'integer[]'],
-            ['foo|boolean', 'integer|boolean']
+            ['foo', 'integer', 'integer'],
+            ['foo[]', 'integer[]', 'array'],
+            ['foo|boolean', 'integer|boolean', 'multiple']
         ];
     }
     
@@ -121,18 +70,27 @@ class TypeCastTest extends TestCase
      * 
      * @param string $type
      * @param string $normalType
+     * @param string $expectHandler
      */
-    public function testAlias($type, $normalType)
+    public function testAlias($type, $normalType, $expectHandler)
     {
-        $handler = $this->createMock(HandlerInterface::class);
-        
-        $typecast = new TypeCast(null, ['integer' => $handler, 'array' => $handler, 'multiple' => $handler]);
-        $typecast->alias('foo', 'integer');
+        $handlers = [
+            'integer' => $this->createMock(HandlerInterface::class),
+            'array' => $this->createMock(HandlerInterface::class),
+            'multiple' => $this->createMock(HandlerInterface::class)
+        ];
 
+        foreach ($handlers as $hdl) {
+            $hdl->expects($this->once())->method('usingTypecast')->willReturnSelf();
+        }
+
+        $typecast = (new TypeCast($handlers))->alias('foo', 'integer');
+
+        $handler = $handlers[$expectHandler];
         $handler->expects($this->once())->method('forType')->with($normalType)->willReturnSelf();
-        $handler->expects($this->once())->method('usingTypecast')->willReturnSelf();
-        $handler->expects($this->once())->method('cast');
-        
-        $typecast->to($type);
+
+        $actual = $typecast->to($type);
+
+        $this->assertSame($handler, $actual);
     }
 }

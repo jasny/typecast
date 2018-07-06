@@ -8,18 +8,11 @@ namespace Jasny\TypeCast;
 interface TypeGuessInterface
 {
     /**
-     * Create a type guess object for these types
-     *
-     * @param array $types
-     * @return static
-     */
-    //public function forTypes(array $types): self;
-
-    /**
      * Guess the handler for the value.
      *
-     * @param mixed $value
+     * @param mixed    $value
+     * @param string[] $types
      * @return string|null
      */
-    public function guessFor($value, array $types): ?string;
+    public function guess($value, array $types): ?string;
 }

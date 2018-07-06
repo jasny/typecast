@@ -41,16 +41,7 @@ abstract class Handler implements HandlerInterface
      */
     public function usingTypecast(TypeCastInterface $typecast): HandlerInterface
     {
-        $name = $typecast->getName();
-
-        if ($this->name === $name) {
-            return $this;
-        }
-
-        $handler = clone $this;
-        $handler->name = $name;
-
-        return $handler;
+        return $this;
     }
     
     /**

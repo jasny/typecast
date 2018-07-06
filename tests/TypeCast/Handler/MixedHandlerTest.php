@@ -1,14 +1,14 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\MixedHandler;
+use Jasny\TypeCast\Handler\MixedHandler;
 
 /**
- * @covers \Jasny\TypeCast\MixedHandler
  * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\MixedHandler
  */
 class MixedHandlerTest extends TestCase
 {

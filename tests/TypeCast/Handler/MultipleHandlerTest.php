@@ -1,21 +1,22 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
 use PHPUnit_Framework_MockObject_MockObject as MockObject;
+use Jasny\TestHelper;
 use Jasny\TypeCast;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\MultipleHandler;
+use Jasny\TypeCast\Handler\MultipleHandler;
 use Jasny\TypeCast\TypeGuessInterface;
 
 /**
- * @covers \Jasny\TypeCast\MultipleHandler
  * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\MultipleHandler
  */
 class MultipleHandlerTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
 
     public function testUsingTypecast()
     {

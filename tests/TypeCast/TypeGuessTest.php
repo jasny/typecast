@@ -3,7 +3,7 @@
 namespace Jasny\TypeCast;
 
 use PHPUnit\Framework\TestCase;
-use Jasny\TypeCast\typeGuess;
+use Jasny\TypeCast\TypeGuess;
 
 /**
  * @covers \Jasny\TypeCast\TypeGuess
@@ -21,31 +21,7 @@ class TypeGuessTest extends TestCase
     {
         $this->typeGuess = new TypeGuess();
     }
-    
-    public function testForTypes()
-    {
-        $new = $this->typeGuess->forTypes(['string', 'integer[]']);
-        
-        $this->assertInstanceOf(typeGuess::class, $new);
-        $this->assertNotSame($this->typeGuess, $new);
-        $this->assertAttributeEquals(['string', 'integer[]'], 'types', $new);
-        
-        $this->assertAttributeSame([], 'types', $this->typeGuess);
-        
-        return $new;
-    }
-    
-    /**
-     * @depends testForTypes
-     */
-    public function testForTypeSameSubtype(typeGuess $typeGuess)
-    {
-        $ret = $typeGuess->forTypes(['integer[]', 'string']);
-        
-        $this->assertSame($typeGuess, $ret);
-        $this->assertAttributeEquals(['string', 'integer[]'], 'types', $ret);
-    }
-    
+
     public function scalarProvider()
     {
         return [
@@ -75,7 +51,7 @@ class TypeGuessTest extends TestCase
      */
     public function testGuessForScalar($value, $types, $expected)
     {
-        $type = $this->typeGuess->forTypes($types)->guessFor($value);
+        $type = $this->typeGuess->guess($value, $types);
 
         $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
     }
@@ -95,7 +71,7 @@ class TypeGuessTest extends TestCase
      */
     public function testGuessForScalarToArray($value, $types, $expected)
     {
-        $type = $this->typeGuess->forTypes($types)->guessFor($value);
+        $type = $this->typeGuess->guess($value, $types);
 
         $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
     }
@@ -122,7 +98,7 @@ class TypeGuessTest extends TestCase
      */
     public function testGuessForArray($value, $types, $expected)
     {
-        $type = $this->typeGuess->forTypes($types)->guessFor($value);
+        $type = $this->typeGuess->guess($value, $types);
 
         $this->assertEquals($expected, $type, sprintf('%s for %s', var_export($value, true), join('|', $types)));
     }

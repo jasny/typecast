@@ -1,20 +1,21 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
+use Jasny\TestHelper;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\ObjectHandler;
+use Jasny\TypeCast\Handler\ObjectHandler;
 use Jasny\TypeCast\Test\Foo;
 use Jasny\TypeCast\Test\FooBar;
 
 /**
- * @covers Jasny\TypeCast\ObjectHandler
- * @covers Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\ObjectHandler
  */
 class ObjectHandlerTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
     
     /**
      * @var ObjectHandler

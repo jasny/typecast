@@ -1,18 +1,19 @@
 <?php
 
-namespace Jasny\TypeCast;
+namespace Jasny\TypeCast\Test\Handler;
 
 use PHPUnit\Framework\TestCase;
+use Jasny\TestHelper;
 use Jasny\TypeCastInterface;
-use Jasny\TypeCast\ArrayHandler;
+use Jasny\TypeCast\Handler\ArrayHandler;
 
 /**
- * @covers \Jasny\TypeCast\ArrayHandler
  * @covers \Jasny\TypeCast\Handler
+ * @covers \Jasny\TypeCast\Handler\ArrayHandler
  */
 class ArrayHandlerTest extends TestCase
 {
-    use \Jasny\TestHelper;
+    use TestHelper;
     
     /**
      * @var ArrayHandler

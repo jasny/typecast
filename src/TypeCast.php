@@ -4,7 +4,6 @@ namespace Jasny;
 
 use Jasny\TypeCastInterface;
 use Jasny\TypeCast\HandlerInterface;
-use Jasny\TypeCast\HandlerRepositoryInterface;
 use Traversable;
 use OutOfBoundsException;
 
@@ -12,8 +11,6 @@ use OutOfBoundsException;
 use Jasny\TypeCast\Handler\{
     ArrayHandler,
     BooleanHandler,
-    FloatHandler,
-    IntegerHandler,
     MixedHandler,
     NumberHandler,
     ObjectHandler,
@@ -25,19 +22,8 @@ use Jasny\TypeCast\Handler\{
 /**
  * Class for type casting
  */
-class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
+class TypeCast implements TypeCastInterface
 {
-    /**
-     * @var mixed
-     */
-    protected $value;
-    
-    /**
-     * The display name
-     * @var string
-     */
-    protected $name;
-    
     /**
      * Handlers that do the actual casting
      * @var HandlerInterface[]
@@ -61,28 +47,15 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
     /**
      * Class constructor
      *
-     * @param mixed              $value
-     * @param HandlerInterface[] $handlers
+     * @param iterable|HandlerInterface[] $handlers
      */
-    public function __construct($value = null, array $handlers = null)
+    public function __construct(iterable $handlers = null)
     {
-        $this->value = $value;
-        $this->handlers = $handlers ?? static::getDefaultHandlers();
+        foreach ($handlers ?? static::getDefaultHandlers() as $key => $handler) {
+            $this->handlers[$key] = $handler->usingTypecast($this);
+        }
     }
     
-    /**
-     * Create a clone of this typecast object for a different value.
-     * 
-     * @param mixed $value
-     * @return static
-     */
-    public function value($value): TypeCastInterface
-    {
-        $cast = clone $this;
-        $cast->value = $value;
-        
-        return $cast;
-    }
 
     /**
      * Get the handler for a type
@@ -91,8 +64,10 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
      * @return HandlerInterface
      * @throws OutOfBoundsException
      */
-    public function desire(string $type): HandlerInterface
+    public function to(string $type): HandlerInterface
     {
+        $type = $this->normalizeType($type);
+
         if (isset($this->handlers[$type])) {
             $key = $type;
         } elseif ($type === 'integer|float' || $type === 'float|integer') {
@@ -109,31 +84,7 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
             throw new OutOfBoundsException("Unable to find handler to cast to '$type'");
         }
         
-        return $this->handlers[$key]->forType($type)->usingTypecast($this);
-    }
-    
-    /**
-     * Set the display name.
-     * This is used in notices.
-     * 
-     * @param string $name
-     * @return $this
-     */
-    public function setName(string $name): self
-    {
-        $this->name = $name;
-        
-        return $this;
-    }
-
-    /**
-     * Get the display name.
-     *
-     * @return string|null
-     */
-    public function getName(): ?string
-    {
-        return $this->name;
+        return $this->handlers[$key]->forType($type);
     }
 
 
@@ -142,17 +93,18 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
      * 
      * @param string $alias
      * @param string $type
-     * @return $this
+     * @return static
      */
-    public function alias(string $alias, string $type): self
+    public function alias(string $alias, string $type): TypeCastInterface
     {
-        $this->aliases[$alias] = $type;
+        $copy = clone $this;
+        $copy->aliases[$alias] = $type;
         
-        return $this;
+        return $copy;
     }
 
     /**
-     * Replace alias type with full type
+     * Lowercase internal types and replace alias type with full type.
      * 
      * @param string $type
      * @return string
@@ -168,23 +120,14 @@ class TypeCast implements TypeCastInterface, HandlerRepositoryInterface
             $subtype = substr($type, 0, -2);
             return $this->normalizeType($subtype) . '[]';
         }
+
+        if (ctype_alpha($type) && !ctype_lower($type) && in_array(strtolower($type), array_keys($this->handlers))) {
+            $type = strtolower($type);
+        }
         
         return $this->aliases[$type] ?? $type;
     }
-    
-    /**
-     * Cast value
-     *
-     * @param string $type
-     * @return mixed
-     */
-    public function to(string $type)
-    {
-        $normalType = $this->normalizeType($type);
 
-        return $this->getHandler($normalType)->cast($this->value);
-    }
-    
     
     /**
      * Get the default handlers defined by the Jasny Typecast library
