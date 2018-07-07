@@ -158,6 +158,6 @@ class ObjectHandler extends Handler
      */
     protected function isAssocArray(array $array): boolean
     {
-        return empty($array) || count(array_filter(array_keys($array), 'is_string')) > 0;
+        return count(array_filter(array_keys($array), 'is_string')) > 0;
     }
 }
