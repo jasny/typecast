@@ -15,37 +15,37 @@ class ObjectHandler extends Handler
      * @var string
      */
     public $class = null;
-    
+
     /**
      * Get the type what the handler is casting to.
-     * 
+     *
      * @return string
      */
     protected function getType(): string
     {
         return trim("{$this->class} object");
     }
-    
+
     /**
      * Set the class name
-     * 
+     *
      * @param string $type
      * @return static
      */
     public function forType(string $type): HandlerInterface
     {
         $class = $type !== 'object' ? $type : null;
-        
+
         if ($class === $this->class) {
             return $this;
         }
-        
+
         $handler = clone $this;
         $handler->class = $class;
-        
+
         return $handler;
     }
-    
+
     /**
      * Cast value to an object of a class
      *
@@ -57,9 +57,9 @@ class ObjectHandler extends Handler
         if ($value === null) {
             return null;
         }
-        
+
         $fn = 'cast' . ucfirst(gettype($value));
-        
+
         switch (strtolower($this->class)) {
             case '':
                 return $this->castToObject($value);
@@ -69,8 +69,8 @@ class ObjectHandler extends Handler
                 return $this->castToClass($value);
         }
     }
-    
-    
+
+
     /**
      * Cast value to a object
      *
@@ -81,13 +81,13 @@ class ObjectHandler extends Handler
         if (is_scalar($value) || is_resource($value)) {
             $value = $this->dontCast($value);
         }
-        
+
         return (object)$value;
     }
-    
+
     /**
      * Cast value to a stdClass object
-     * 
+     *
      * @return object
      */
     protected function castToStdClass($value)
@@ -95,13 +95,13 @@ class ObjectHandler extends Handler
         if (is_object($value) && !$value instanceof \stdClass) {
             $value = get_object_vars($value);
         }
-        
+
         return $this->castToObject($value);
     }
 
     /**
      * Cast value to a specific class
-     * 
+     *
      * @param mixed $value
      * @return object|mixed
      */
@@ -110,47 +110,54 @@ class ObjectHandler extends Handler
         if (!class_exists($this->class)) {
             return $this->dontCast($value, "Class doesn't exist");
         }
-        
+
         if (is_object($value) && is_a($value, $this->class)) {
             return $value;
         }
-        
+
         $value = $this->createWithSetState($value);
-        
+
         if (!is_a($value, $this->class)) {
             $class = $this->class;
             $value = new $class($value);
         }
-        
+
         return $value;
     }
-    
+
     /**
      * Create object using __set_state.
-     * @internal Internal objects expect an array but do lot list paramaters, so checking `empty($parmas)`.
-     * 
+     *
      * @param mixed $value
      * @return object|mixed
      */
-    protected function createWithSetState($value)
+    protected function createWithSetState($value): object
     {
         if (!method_exists($this->class, '__set_state')) {
             return $value;
         }
-        
-        $method = new \ReflectionMethod($this->class, '__set_state');
-        $params = $method->getParameters();
-        
-        if (empty($params) || (string)$params[0]->getType() === 'array') {
-            if ($value instanceof \stdClass) {
-                $value = get_object_vars($value);
-            }
-            
-            if (!is_array($value)) {
-                return $value;
-            }
+
+        if ($value instanceof \stdClass) {
+            $value = get_object_vars($value);
         }
-        
-        return $method->invoke(null, $value);
+
+        if (!is_array($value) || !$this->isAssocArray($value)) {
+            return $value;
+        }
+
+        $class = $this->class;
+
+        return $class::__set_state($value);
+    }
+
+    /**
+     * Determine if array is associative
+     *
+     * @param array $array
+     * @return boolean
+     */
+    protected function isAssocArray(array $array): boolean
+    {
+        return empty($array) || count(array_filter(array_keys($array), 'is_string')) > 0;
     }
 }
