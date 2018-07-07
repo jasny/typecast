@@ -131,7 +131,7 @@ class ObjectHandler extends Handler
      * @param mixed $value
      * @return object|mixed
      */
-    protected function createWithSetState($value): object
+    protected function createWithSetState($value)
     {
         if (!method_exists($this->class, '__set_state')) {
             return $value;
@@ -156,7 +156,7 @@ class ObjectHandler extends Handler
      * @param array $array
      * @return boolean
      */
-    protected function isAssocArray(array $array): boolean
+    protected function isAssocArray(array $array): bool
     {
         return count(array_filter(array_keys($array), 'is_string')) > 0;
     }
