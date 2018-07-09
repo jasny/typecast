@@ -8,7 +8,7 @@
     convertWarningsToExceptions="true"
 >
     <testsuites>
-        <testsuite>
+        <testsuite name="All tests">
             <directory>tests/</directory>
         </testsuite>
     </testsuites>
@@ -19,6 +19,6 @@
     </filter>
     <logging>
         <log type="coverage-text" target="php://stdout"/>
-    </logging>    
+    </logging>
 </phpunit>
 
