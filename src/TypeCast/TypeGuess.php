@@ -2,7 +2,7 @@
 
 namespace Jasny\TypeCast;
 
-use Jasny\TypeCast\BooleanHandler;
+use Jasny\TypeCast\Handler\BooleanHandler;
 use stdClass;
 use DateTime;
 use Traversable;
@@ -28,7 +28,7 @@ class TypeGuess implements TypeGuessInterface
 
     /**
      * Create a type guess object for these types
-     * 
+     *
      * @param array $types
      * @return static
      */
@@ -60,7 +60,7 @@ class TypeGuess implements TypeGuessInterface
 
     /**
      * Guess the handler for the value.
-     * 
+     *
      * @param mixed $value
      * @param array $types
      * @return string|null
@@ -108,7 +108,7 @@ class TypeGuess implements TypeGuessInterface
 
     /**
      * Get possible types based on the value
-     * 
+     *
      * @return array
      */
     protected function getPossibleTypes(): array
@@ -118,7 +118,7 @@ class TypeGuess implements TypeGuessInterface
         }
 
         $type = $this->getTypeOf($this->value);
-        
+
         switch ($type) {
             case 'boolean':
             case 'integer':
@@ -136,10 +136,10 @@ class TypeGuess implements TypeGuessInterface
                 return array_intersect($this->types, [$type]);
         }
     }
-    
+
     /**
      * Get possible types based on a scalar value
-     * 
+     *
      * @param mixed $this->value
      * @return array
      */
@@ -218,7 +218,7 @@ class TypeGuess implements TypeGuessInterface
                 return substr($type, -2) !== '[]' || in_array(substr($type, 0, -2), $possibleSubTypes);
             });
     }
-    
+
     /**
      * Get possible types based on associated array or stdClass object.
      *
@@ -227,13 +227,13 @@ class TypeGuess implements TypeGuessInterface
     protected function getPossibleAssocTypes(): array
     {
         $exclude = ['string', 'integer', 'float', 'boolean', 'resource', 'DateTime'];
-        
+
         return array_udiff($this->types, $exclude, 'strcasecmp');
     }
 
     /**
      * Get possible types based on an object.
-     * 
+     *
      * @return array
      */
     protected function getPossibleObjectTypes(): array
@@ -359,7 +359,7 @@ class TypeGuess implements TypeGuessInterface
             return $this;
         }
 
-        $type = $this->setTypes($subtypes)->guessFor($this->value);
+        $type = $this->guess($this->value, $subtypes);
 
         return $type ? $this->setTypes([$type . '[]']) : $this;
     }
