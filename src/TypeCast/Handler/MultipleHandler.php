@@ -110,7 +110,7 @@ class MultipleHandler extends Handler
             throw new LogicException("Type cast for multiple handler not set");
         }
 
-        $type = $this->typeGuess->guess($value, $this->getType());
+        $type = $this->typeGuess->guess($value, $this->types);
 
         return isset($type) ? $this->typecast->to($type)->cast($value) : $this->dontCast($value);
     }
