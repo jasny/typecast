@@ -60,7 +60,7 @@ class ArrayHandler extends Handler
         $traversable = null;
         $subtype = null;
 
-        if (strstr($type, '|') && substr($type, -2) === '[]') {
+        if (strpos($type, '|') !== false && substr($type, -2) === '[]') {
             list($traversable, $type) = explode('|', $type, 2);
             $subtype = substr($type, 0, -2);
         } elseif (substr($type, -2) === '[]') {

@@ -285,7 +285,7 @@ class TypeGuess implements TypeGuessInterface
         }
 
         if (in_array('integer', $types) && in_array('float', $types)) {
-            $remove[] = is_float($this->value) || (is_string($this->value) && strstr($this->value, '.')) ? 'integer' : 'float';
+            $remove[] = is_float($this->value) || (is_string($this->value) && strpos($this->value, '.') !== false) ? 'integer' : 'float';
         }
 
         return $this->setTypes(array_udiff($types, $remove, 'strcasecmp'));
@@ -322,7 +322,7 @@ class TypeGuess implements TypeGuessInterface
             $float = false;
 
             foreach ($this->value as $item) {
-                $float = $float || is_float($this->value) || (is_string($this->value) && strstr($this->value, '.'));
+                $float = $float || is_float($this->value) || (is_string($this->value) && strpos($this->value, '.') !== false);
             }
 
             $remove[] = $float ? 'integer[]' : 'float[]';
