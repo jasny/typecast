@@ -16,7 +16,7 @@ use LogicException;
 class ArrayHandler extends Handler
 {
     /**
-     * @var TypeCastInterface 
+     * @var TypeCastInterface
      */
     protected $typecast;
 
@@ -33,11 +33,11 @@ class ArrayHandler extends Handler
      * @var string|null  type or class name
      */
     protected $subtype;
-    
-    
+
+
     /**
      * Get the type what the handler is casting to.
-     * 
+     *
      * @return string
      */
     protected function getType(): string
@@ -50,7 +50,7 @@ class ArrayHandler extends Handler
 
     /**
      * Use handler to cast to type.
-     * 
+     *
      * @param string $type
      * @return static
      * @throws LogicException if handler can't be used
@@ -74,17 +74,17 @@ class ArrayHandler extends Handler
         if ($traversable === $this->traversable && $subtype === $this->subtype) {
             return $this;
         }
-        
+
         $handler = clone $this;
         $handler->traversable = $traversable;
         $handler->subtype = $subtype;
-        
+
         return $handler;
     }
-    
+
     /**
      * Set typecast
-     * 
+     *
      * @param TypeCastInterface $typecast
      * @return static
      */
@@ -99,8 +99,8 @@ class ArrayHandler extends Handler
 
         return $handler;
     }
-    
-    
+
+
     /**
      * Cast value to an array
      *
@@ -109,7 +109,7 @@ class ArrayHandler extends Handler
      */
     public function cast($value)
     {
-        if (isset($this->traversable) && is_a($this->traversable, Traversable::class, true)) {
+        if (isset($this->traversable) && !is_a($this->traversable, Traversable::class, true)) {
             return $this->dontCast($value, "{$this->traversable} is not Traversable");
         }
 
@@ -119,18 +119,23 @@ class ArrayHandler extends Handler
         if (!is_iterable($result)) {
             return $result;
         }
-        
+
+        //Commented out as there's no HandlerRepositoryInterface
+        // if (isset($this->subtype)) {
+        //     $result = $this->typecast instanceof HandlerRepositoryInterface
+        //         ? $this->castEachWithHandler($result, $this->typecast)
+        //         : $this->castEach($result);
+        // }
+
         if (isset($this->subtype)) {
-            $result = $this->typecast instanceof HandlerRepositoryInterface
-                ? $this->castEachWithHandler($result, $this->typecast)
-                : $this->castEach($result);
+            $result = $this->castEach($result);
         }
 
         if (is_array($result) && isset($this->traversable)) {
             $class = $this->traversable;
             $result = new $class($result);
         }
-        
+
         return $result;
     }
 
@@ -148,7 +153,7 @@ class ArrayHandler extends Handler
         }
 
         foreach ($array as &$item) {
-            $item = $this->typecast->forValue($item)->to($this->subtype);
+            $item = $this->typecast->to($this->subtype)->cast($item);
         }
 
         return $array;
@@ -162,21 +167,21 @@ class ArrayHandler extends Handler
      * @param HandlerRepositoryInterface $repo
      * @return iterable
      */
-    protected function castEachWithHandler(iterable $array, HandlerRepositoryInterface $repo)
-    {
-        $handler = $repo->getHandler($this->subtype);
+    // protected function castEachWithHandler(iterable $array, HandlerRepositoryInterface $repo)
+    // {
+    //     $handler = $repo->getHandler($this->subtype);
 
-        foreach ($array as &$item) {
-            $item = $handler->cast($item);
-        }
+    //     foreach ($array as &$item) {
+    //         $item = $handler->cast($item);
+    //     }
 
-        return $array;
-    }
+    //     return $array;
+    // }
 
-    
+
     /**
      * Cast a string to an array
-     * 
+     *
      * @param mixed $value
      * @return array
      */
@@ -184,10 +189,10 @@ class ArrayHandler extends Handler
     {
         return $value === '' ? [] : [$value];
     }
-    
+
     /**
      * Cast a resource to a array
-     * 
+     *
      * @param mixed $value
      * @return resource
      */
@@ -195,10 +200,10 @@ class ArrayHandler extends Handler
     {
         return $this->subtype === 'resource' ? [$value] : $this->dontCast($value);
     }
-    
+
     /**
      * Cast an object to a array
-     * 
+     *
      * @param mixed $value
      * @return array
      */
@@ -207,11 +212,11 @@ class ArrayHandler extends Handler
         if ($value instanceof Traversable && (!isset($this->traversable) || !is_a($value, $this->traversable, true))) {
             return iterator_to_array($value);
         }
-        
+
         if ($value instanceof stdClass) {
             return call_user_func('get_object_vars', $value);
         }
-        
+
         return [$value];
     }
 }
