@@ -82,7 +82,6 @@ class TypeGuessTest extends TestCase
     {
         return [
             [['foo', 'bar'], ['string', 'integer'], null],
-            [['foo', 'bar'], ['string', 'integer'], null],
             [[10, 20], ['string[]', 'integer[]'], 'integer[]'],
             [['10.0', 20], ['string[]', 'integer[]'], 'integer[]'],
             [[10, 20], ['float[]', 'integer[]'], 'integer[]'],
