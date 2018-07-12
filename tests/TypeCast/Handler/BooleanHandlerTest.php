@@ -14,32 +14,31 @@ use Jasny\TypeCast\Handler\BooleanHandler;
 class BooleanHandlerTest extends TestCase
 {
     use TestHelper;
-    
+
     /**
      * @var BooleanHandler
      */
     protected $handler;
-    
+
     public function setUp()
     {
         $this->handler = new BooleanHandler();
     }
-    
+
     public function testUsingTypecast()
     {
         $typecast = $this->createMock(TypeCastInterface::class);
-        $typecast->expects($this->once())->method('getName')->willReturn(null);
-        
+
         $ret = $this->handler->usingTypecast($typecast);
         $this->assertSame($this->handler, $ret);
     }
-    
+
     public function testForType()
     {
         $ret = $this->handler->forType('boolean');
         $this->assertSame($this->handler, $ret);
     }
-    
+
     /**
      * @expectedException LogicException
      */
@@ -47,8 +46,8 @@ class BooleanHandlerTest extends TestCase
     {
         $this->handler->forType('foo');
     }
-    
-    
+
+
     public function castProvider()
     {
         return [
@@ -69,7 +68,7 @@ class BooleanHandlerTest extends TestCase
             [false, 'off']
         ];
     }
-    
+
     /**
      * @dataProvider castProvider
      */
@@ -77,8 +76,8 @@ class BooleanHandlerTest extends TestCase
     {
         $this->assertSame($expected, $this->handler->cast($value));
     }
-    
-    
+
+
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast string "foo" to boolean
@@ -87,20 +86,7 @@ class BooleanHandlerTest extends TestCase
     {
         $this->handler->cast('foo');
     }
-    
-    /**
-     * @expectedException         \PHPUnit\Framework\Error\Notice
-     * @expectedExceptionMessage  Unable to cast QUX from string "foo" to boolean
-     */
-    public function testCastUsingName()
-    {
-        $typecast = $this->createMock(TypeCastInterface::class);
-        $typecast->expects($this->once())->method('getName')->willReturn('QUX');
 
-        $handler = $this->handler->usingTypecast($typecast);
-        $handler->cast('foo');
-    }
-    
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast array to boolean
@@ -109,7 +95,7 @@ class BooleanHandlerTest extends TestCase
     {
         $this->handler->cast([10, 20]);
     }
-    
+
     /**
      * @expectedException         \PHPUnit\Framework\Error\Notice
      * @expectedExceptionMessage  Unable to cast stdClass object to boolean
@@ -118,7 +104,7 @@ class BooleanHandlerTest extends TestCase
     {
         $this->handler->cast((object)['foo' => 'bar']);
     }
-    
+
     /**
      * Test type casting an resource to boolean
      *
@@ -134,5 +120,5 @@ class BooleanHandlerTest extends TestCase
         $resource = imagecreate(10, 10);
         $this->handler->cast($resource);
     }
-    
+
 }

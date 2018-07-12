@@ -19,7 +19,9 @@ class TypeCastTest extends TestCase
             ['boolean', Handler\BooleanHandler::class],
             ['float', Handler\NumberHandler::class],
             ['integer', Handler\NumberHandler::class],
+            ['INTEGER', Handler\NumberHandler::class],
             ['integer|float', Handler\NumberHandler::class],
+            ['float|integer', Handler\NumberHandler::class],
             ['mixed', Handler\MixedHandler::class],
             ['object', Handler\ObjectHandler::class],
             ['resource', Handler\ResourceHandler::class],
@@ -30,17 +32,17 @@ class TypeCastTest extends TestCase
             ['Foo|bar', Handler\MultipleHandler::class]
         ];
     }
-    
+
     /**
      * @dataProvider handlerProvider
-     * 
+     *
      * @param string $type
      * @param string $class
      */
     public function testTo($type, $class)
     {
         $typecast = new TypeCast();
-        
+
         $handler = $typecast->to($type);
 
         $this->assertInstanceOf($class, $handler);
@@ -64,10 +66,10 @@ class TypeCastTest extends TestCase
             ['foo|boolean', 'integer|boolean', 'multiple']
         ];
     }
-    
+
     /**
      * @dataProvider aliasProvider
-     * 
+     *
      * @param string $type
      * @param string $normalType
      * @param string $expectHandler

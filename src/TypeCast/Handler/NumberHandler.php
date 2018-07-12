@@ -39,7 +39,7 @@ class NumberHandler extends Handler
             throw new LogicException("Unable to use " . get_class($this) . " to cast to $type");
         }
 
-        if ($this->type === $type || ((strstr($this->type, '|') && strstr($type, '|')))) {
+        if ($this->type === $type || ((strpos($this->type, '|') !== false && strpos($type, '|') !== false))) {
             return $this;
         }
 
@@ -108,19 +108,19 @@ class NumberHandler extends Handler
 
     /**
      * Cast a string to a number
-     * 
+     *
      * @param string $value
      * @return int|float|string
      */
     protected function castString(string $value)
     {
         $val = trim($value);
-    
+
         if (!is_numeric($val) && $val !== '') {
             return $this->dontCast($value);
         }
-        
-        $type = strstr($this->type, '|') ? (strstr($val, '.') ? 'float' : 'integer') : $this->type;
+
+        $type = strpos($this->type, '|') !== false ? (strpos($val, '.') !== false ? 'float' : 'integer') : $this->type;
         settype($val, $type);
 
         return $val;
