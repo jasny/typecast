@@ -2,40 +2,34 @@
 
 namespace Jasny;
 
-use Jasny\TypeCast;
+use Jasny\TypeCastInterface;
+use Jasny\TypeCast\HandlerInterface;
+use Traversable;
+use OutOfBoundsException;
+
+// Default handlers
+use Jasny\TypeCast\Handler\{
+    ArrayHandler,
+    BooleanHandler,
+    MixedHandler,
+    NumberHandler,
+    ObjectHandler,
+    ResourceHandler,
+    StringHandler,
+    MultipleHandler
+};
 
 /**
  * Class for type casting
- *
- *     $string = TypeCast::value($myValue)->to('string');
- *     $foo = TypeCast::value($data)->to('Foo');
- * 
- * When casting to an object of a class, the `__set_state()` method is used if available and the value is an array or a
- * stdClass object.
  */
-class TypeCast
+class TypeCast implements TypeCastInterface
 {
-    use TypeCast\ToMixed,
-        TypeCast\ToNumber,
-        TypeCast\ToString,
-        TypeCast\ToBoolean,
-        TypeCast\ToArray,
-        TypeCast\ToObject,
-        TypeCast\ToResource,
-        TypeCast\ToClass,
-        TypeCast\ToMultiple;
-    
     /**
-     * @var mixed
+     * Handlers that do the actual casting
+     * @var HandlerInterface[]
      */
-    protected $value;
-    
-    /**
-     * The display name
-     * @var string
-     */
-    protected $name;
-    
+    protected $handlers;
+
     /**
      * Type aliases
      * @var string[]
@@ -43,177 +37,118 @@ class TypeCast
     protected $aliases = [
         'bool' => 'boolean',
         'int' => 'integer',
+        'double' => 'float',
+        'real' => 'float',
+        'number' => 'integer|float',
         'mixed[]' => 'array'
     ];
-    
-    
+
+
     /**
      * Class constructor
      *
-     * @param mixed $value
+     * @param iterable|HandlerInterface[] $handlers
      */
-    public function __construct($value)
+    public function __construct(iterable $handlers = null)
     {
-        $this->value = $value;
+        foreach ($handlers ?? static::getDefaultHandlers() as $key => $handler) {
+            $this->handlers[$key] = $handler->usingTypecast($this);
+        }
     }
-    
+
+
     /**
-     * Factory method
+     * Get the handler for a type
      *
-     * @param mixed $value
+     * @param string $type
+     * @return HandlerInterface
+     * @throws OutOfBoundsException
      */
-    public static function value($value)
+    public function to(string $type): HandlerInterface
     {
-        return new static($value);
+        $type = $this->normalizeType($type);
+
+        if (isset($this->handlers[$type])) {
+            $key = $type;
+        } elseif ($type === 'integer|float' || $type === 'float|integer') {
+            $key = 'number';
+        } elseif (strpos($type, '|') !== false) {
+            $key = 'multiple';
+        } elseif (substr($type, -2) === '[]' || is_a($type, Traversable::class, true)) {
+            $key = 'array';
+        } else {
+            $key = 'object';
+        }
+
+        if (!isset($this->handlers[$key])) {
+            throw new OutOfBoundsException("Unable to find handler to cast to '$type'");
+        }
+
+        return $this->handlers[$key]->forType($type);
     }
-    
-    /**
-     * Create a clone of this typecast object for a different value
-     * 
-     * @param mixed $value
-     * @return static
-     */
-    protected function forValue($value)
-    {
-        $cast = clone $this;
-        $cast->value = $value;
-        
-        return $cast;
-    }
-    
-    
-    /**
-     * Get the value
-     * 
-     * @return mixed
-     */
-    public function getValue()
-    {
-        return $this->value;
-    }
-    
-    /**
-     * Set the display name.
-     * This is used in notices.
-     * 
-     * @param string $name
-     * @return $this
-     */
-    public function setName($name)
-    {
-        $this->name = $name;
-        return $this;
-    }
-    
+
+
     /**
      * Add a custom alias
-     * 
+     *
      * @param string $alias
      * @param string $type
+     * @return static
      */
-    public function alias($alias, $type)
+    public function alias(string $alias, string $type): TypeCastInterface
     {
-        $this->aliases[$alias] = $type;
+        $copy = clone $this;
+        $copy->aliases[$alias] = $type;
+
+        return $copy;
     }
 
     /**
-     * Replace alias type with full type
-     * 
-     * @param string $type
-     */
-    public function normalizeType(&$type)
-    {
-        if (substr($type, -2) === '[]') {
-            $subtype = substr($type, 0, -2);
-            $this->normalizeType($subtype);
-            
-            $type = $subtype . '[]';
-            return;
-        }
-        
-        if (isset($this->aliases[$type])) {
-            $type = $this->aliases[$type];
-        }
-    }
-    
-    /**
-     * Get the internal types
-     * 
-     * @return array
-     */
-    protected function getInternalTypes()
-    {
-        return ['string', 'boolean', 'integer', 'float', 'array', 'object', 'resource', 'mixed'];
-    }
-    
-    /**
-     * Cast value
+     * Lowercase internal types and replace alias type with full type.
      *
      * @param string $type
-     * @return mixed
-     */
-    public function to($type)
-    {
-        if (strstr($type, '|')) {
-            return $this->toMultiple(explode('|', $type));
-        }
-        
-        $this->normalizeType($type);
-        
-        // Cast internal types
-        if (in_array($type, $this->getInternalTypes())) {
-            return call_user_func([$this, 'to' . ucfirst($type)]);
-        }
-
-        // Cast to class
-        return substr($type, -2) === '[]'
-            ? $this->toArray(substr($type, 0, -2))
-            : $this->toClass($type);
-    }
-    
-
-    /**
-     * Get a descript of the type of the value
-     *
      * @return string
      */
-    protected function getValueTypeDescription()
+    public function normalizeType(string $type): string
     {
-        if (is_resource($this->getValue())) {
-            $valueType = "a " . get_resource_type($this->getValue()) . " resource";
-        } elseif (is_array($this->getValue())) {
-            $valueType = "an array";
-        } elseif (is_object($this->getValue())) {
-            $valueType = "a " . get_class($this->getValue()) . " object";
-        } elseif (is_string($this->getValue())) {
-            $valueType = "string \"{$this->getValue()}\"";
-        } else {
-            $valueType = "a " . gettype($this->getValue());
+        if (strpos($type, '|') !== false) {
+            $types = array_map([$this, __FUNCTION__], explode('|', $type));
+            return join('|', $types);
         }
 
-        return $valueType;
-    }
-    
-    /**
-     * Trigger a warning that the value can't be casted and return $value
-     * 
-     * @param string $type
-     * @param string $explain  Additional message
-     * @return mixed
-     */
-    public function dontCastTo($type, $explain = null)
-    {
-        $valueType = $this->getValueTypeDescription();
-        
-        if (!strstr($type, '|')) {
-            $type = (in_array($type, ['array', 'object']) ? 'an ' : 'a ') . $type;
+        if (substr($type, -2) === '[]') {
+            $subtype = substr($type, 0, -2);
+            return $this->normalizeType($subtype) . '[]';
         }
-        
-        $name = isset($this->name) ? " {$this->name} from" : '';
-        
-        $message = "Unable to cast" . $name . " $valueType to $type" . (isset($explain) ? ": $explain" : '');
-        trigger_error($message, E_USER_NOTICE);
-        
-        return $this->getValue();
+
+        if (ctype_alpha($type) && !ctype_lower($type) && in_array(strtolower($type), array_keys($this->handlers))) {
+            $type = strtolower($type);
+        }
+
+        return $this->aliases[$type] ?? $type;
+    }
+
+
+    /**
+     * Get the default handlers defined by the Jasny Typecast library
+     *
+     * @return HandlerInterface[]
+     */
+    public static function getDefaultHandlers(): array
+    {
+        $numberHandler = new NumberHandler();
+
+        return [
+            'array' => new ArrayHandler(),
+            'boolean' => new BooleanHandler(),
+            'float' => $numberHandler,
+            'integer' => $numberHandler,
+            'number' => $numberHandler,
+            'mixed' => new MixedHandler(),
+            'object' => new ObjectHandler(),
+            'resource' => new ResourceHandler(),
+            'string' => new StringHandler(),
+            'multiple' => new MultipleHandler()
+        ];
     }
 }
